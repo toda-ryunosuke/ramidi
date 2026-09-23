@@ -1,0 +1,50 @@
+# ====================================================================
+# Ramidi Sample Library: Rhythm & Backing Patterns
+# ====================================================================
+
+# ギター・パワーコード
+DEF_MACRO, GUITAR_RIFF_L
+  LOOP_START, 8
+    NOTE, 2, 2,   0, 48, 120, 100
+    ,,,           0, 55, 120, 100
+    CC,   2, 2, 240, 111, 0
+  LOOP_END
+END_MACRO
+
+DEF_MACRO, GUITAR_RIFF_R
+  LOOP_START, 8
+    NOTE, 3, 3,   0, 48, 115, 100
+    ,,,           0, 55, 115, 100
+    CC,   3, 3, 240, 111, 0
+  LOOP_END
+END_MACRO
+
+# ギャロップベース
+DEF_MACRO, BASS_GALLOP
+  LOOP_START, 4
+    NOTE, 4, 4,   0, 24, 127,  60
+    ,,,         240, 24, 100,  60
+    ,,,         120, 24, 115,  60
+    ,,,         120, 24, 100,  60
+  LOOP_END
+END_MACRO
+
+DEF_MACRO, SUB_GALLOP
+  LOOP_START, 4
+    NOTE, 5, 5,   0, 24, 127,  60
+    ,,,         240, 24, 100,  60
+    ,,,         120, 24, 115,  60
+    ,,,         120, 24, 100,  60
+  LOOP_END
+END_MACRO
+
+# シンセの高速装飾アルペジオ
+DEF_MACRO, SYNTH_OSTINATO
+  LOOP_START, 4
+    NOTE, 11, 11,   0, 60, 110, 60
+    ,,,           120, 67, 100, 60
+    ,,,           120, 72, 110, 60
+    ,,,           120, 67, 100, 60
+    CC,   11, 11, 120, 111, 0
+  LOOP_END
+END_MACRO

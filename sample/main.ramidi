@@ -1,0 +1,412 @@
+# ====================================================================
+# Ramidi 16ch Showcase: "Starlight Burst" (Poyo-Poyo Chiptune Mix)
+# ====================================================================
+
+USE_SOUNDFONT, GeneralUser
+MASTERING_TYPE, EDM
+
+TITLE, "Starlight Burst (Poyo-Poyo Mix)"
+COPYRIGHT, "(C) Ramidi Engine"
+
+# ぽよぽよ路線に合わせてトラック名も変更
+TRACK_NAME, 0, "Poyo Square Lead"
+TRACK_NAME, 1, "Calliope Lead"
+TRACK_NAME, 2, "Marimba Backing L"
+TRACK_NAME, 3, "Kalimba Backing R"
+TRACK_NAME, 4, "Synth Bass (Poyo)"
+TRACK_NAME, 5, "Sub Synth Bass"
+TRACK_NAME, 6, "Electric Piano"
+TRACK_NAME, 7, "Soft Strings"
+TRACK_NAME, 8, "Synth Brass"
+TRACK_NAME, 9, "Electronic Kit"
+TRACK_NAME, 10, "Aah Choir"
+TRACK_NAME, 11, "Crystal Arpeggio"
+TRACK_NAME, 12, "Warm Pad"
+TRACK_NAME, 13, "Steel Drum Hit"
+TRACK_NAME, 14, "Glockenspiel"
+TRACK_NAME, 15, "Synth Drum"
+
+TEMPO,   0, 0, 185.0    # ぽよぽよ感を出すため少しだけテンポダウン(195->185)
+TIMESIG, 0, 0, 4, 4
+
+# --- ぽよぽよ音色設定 (PROGRAM) ---
+PROGRAM,  0,  0, 0, 80  # Square Wave (ファミコン風主旋律)
+PROGRAM,  1,  1, 0, 82  # Calliope (丸くて可愛い笛の音)
+PROGRAM,  2,  2, 0, 13  # Marimba (コロコロしたバッキング)
+PROGRAM,  3,  3, 0, 108 # Kalimba (ぽろんぽろんした響き)
+PROGRAM,  4,  4, 0, 39  # Synth Bass 1 (ポヨポヨベース)
+PROGRAM,  5,  5, 0, 39  # Synth Bass 1
+PROGRAM,  6,  6, 0, 5   # Electric Piano 1 (キラキラしたピアノ)
+PROGRAM,  7,  7, 0, 49  # Slow Strings
+PROGRAM,  8,  8, 0, 62  # Synth Brass 1
+PROGRAM,  9,  9, 0, 24  # Electronic Kit (TR-808系の可愛いドラム)
+PROGRAM, 10, 10, 0, 52  # Choir Aahs
+PROGRAM, 11, 11, 0, 98  # Crystal
+PROGRAM, 12, 12, 0, 89  # Warm Pad
+PROGRAM, 13, 13, 0, 114 # Steel Drum (トロピカルなアクセント)
+PROGRAM, 14, 14, 0, 9   # Glockenspiel (鉄琴)
+PROGRAM, 15, 15, 0, 118 # Synth Drum
+
+# ライブラリ読み込み
+INCLUDE, ../lib/gm.ramidi
+INCLUDE, drums.ramidi
+INCLUDE, chords.ramidi
+
+# 音源リセット (GM) のみ。GS SysEx は撤廃
+CALL_MACRO, GM_RESET, 1, 0, 0
+CALL_MACRO, GM_MASTER_VOL, 1, 0, 0, 127
+
+# --- ミキシング (CC 7) ぽよぽよバランス ---
+CC,  9,  9, 0,  7, 100  # Drums (優しめ)
+CC,  4,  4, 0,  7, 110  # Bass (目立たせる)
+CC,  5,  5, 0,  7,  90
+CC,  0,  0, 0,  7, 105  # Main Lead
+CC,  1,  1, 0,  7,  90  # Sub Lead
+CC, 14, 14, 0,  7, 100  # Glockenspiel
+CC,  2,  2, 0,  7,  95  # Marimba
+CC,  3,  3, 0,  7,  95  # Kalimba
+CC,  6,  6, 0,  7,  80  # E.Piano
+CC,  7,  7, 0,  7,  70  # Strings (控えめ)
+CC,  8,  8, 0,  7,  85  # Brass
+CC, 10, 10, 0,  7,  60  # Choir
+CC, 11, 11, 0,  7,  85  # Crystal
+CC, 12, 12, 0,  7,  65  # Pad
+CC, 13, 13, 0,  7, 110  # Steel Drum
+CC, 15, 15, 0,  7,  90  # Synth Drum
+
+# --- パンニング (CC 10) 限界までワイドに拡張 ---
+CC,  0,  0, 0, 10,  60  # Poyo Square Lead (ほぼ中央、少し左)
+CC,  1,  1, 0, 10,  68  # Calliope Lead (ほぼ中央、少し右)
+CC,  2,  2, 0, 10,   0  # Marimba (完全左端: L100%)
+CC,  3,  3, 0, 10, 127  # Kalimba (完全右端: R100%)
+CC,  4,  4, 0, 10,  64  # Synth Bass (ど真ん中: C)
+CC,  5,  5, 0, 10,  64  # Sub Synth Bass (ど真ん中: C)
+CC,  6,  6, 0, 10,  15  # E.Piano (かなり左寄り)
+CC,  7,  7, 0, 10, 112  # Soft Strings (かなり右寄り)
+CC,  8,  8, 0, 10,  96  # Brass (右寄り)
+CC,  9,  9, 0, 10,  64  # Drums (ど真ん中: C)
+CC, 10, 10, 0, 10,  10  # Choir (左端寄り)
+CC, 11, 11, 0, 10, 117  # Crystal Arp (右端寄り)
+CC, 12, 12, 0, 10,  24  # Warm Pad (左寄り)
+CC, 13, 13, 0, 10,  84  # Steel Drum (右寄り)
+CC, 14, 14, 0, 10, 100  # Glockenspiel (右寄り)
+CC, 15, 15, 0, 10,  15  # Synth Drum (左寄り)
+
+# --- 標準エフェクトセンド (CC 91: Reverb, CC 93: Chorus) ---
+CC,  0,  0, 0, 91,  60
+CC,  1,  1, 0, 91,  60
+CC,  2,  2, 0, 91,  70  # マリンバに深いリバーブ
+CC,  3,  3, 0, 91,  70
+CC,  7,  7, 0, 91,  80
+CC, 10, 10, 0, 91,  80
+CC, 11, 11, 0, 91,  90
+CC, 12, 12, 0, 91,  70
+
+CC,  0,  0, 0, 93,  40  # リードに少しコーラス
+CC,  6,  6, 0, 93,  80  # エレピに強いコーラス
+CC, 11, 11, 0, 93, 100  # クリスタルにコーラス
+
+# --- ぽよぽよ音作り (CC 71: Resonance, CC 74: Cutoff) ---
+# ベースのアタックを丸くして「ポヨッ」とさせる
+CC,  4,  4, 0, 74,  65  # カットオフを少し閉じる
+CC,  4,  4, 0, 71,  90  # レゾナンスを上げてクセを出す
+CC,  5,  5, 0, 74,  60
+
+# ====================================================================
+# 1. Drums (Tick 960 スタート)
+# ====================================================================
+SET_TICK, 9, 960
+NOTE, 9, 9, 0, 49, 127, 1920
+CALL_MACRO, DRUM_BEAT, 3, 0, 0
+CALL_MACRO, DRUM_FILL_1, 1, 0, 0
+NOTE, 9, 9, 0, 49, 127, 1920
+CALL_MACRO, DRUM_BEAT, 3, 0, 0
+CALL_MACRO, DRUM_FILL_2, 1, 0, 0
+NOTE, 9, 9, 0, 49, 127,  480
+,,,         0, 36, 127,  480
+
+# ====================================================================
+# 2. Rhythm Section (Marimba, Kalimba, Bass)
+# ====================================================================
+SET_TICK, 2, 960
+CALL_MACRO, GUITAR_RIFF_L, 1, 5, 0
+CALL_MACRO, GUITAR_RIFF_L, 1, 7, 0
+CALL_MACRO, GUITAR_RIFF_L, 1, 4, 0
+CALL_MACRO, GUITAR_RIFF_L, 1, 9, 0
+CALL_MACRO, GUITAR_RIFF_L, 1, 5, 0
+CALL_MACRO, GUITAR_RIFF_L, 1, 7, 0
+CALL_MACRO, GUITAR_RIFF_L, 1, 4, 0
+CALL_MACRO, GUITAR_RIFF_L, 1, 9, 0
+NOTE, 2, 2, 0, 45, 127,  480
+,,,         0, 52, 127,  480
+
+SET_TICK, 3, 960
+CALL_MACRO, GUITAR_RIFF_R, 1, 5, 0
+CALL_MACRO, GUITAR_RIFF_R, 1, 7, 0
+CALL_MACRO, GUITAR_RIFF_R, 1, 4, 0
+CALL_MACRO, GUITAR_RIFF_R, 1, 9, 0
+CALL_MACRO, GUITAR_RIFF_R, 1, 5, 0
+CALL_MACRO, GUITAR_RIFF_R, 1, 7, 0
+CALL_MACRO, GUITAR_RIFF_R, 1, 4, 0
+CALL_MACRO, GUITAR_RIFF_R, 1, 9, 0
+NOTE, 3, 3, 0, 45, 127,  480
+,,,         0, 52, 127,  480
+
+SET_TICK, 4, 960
+CALL_MACRO, BASS_GALLOP, 1, 5, 0
+CALL_MACRO, BASS_GALLOP, 1, 7, 0
+CALL_MACRO, BASS_GALLOP, 1, 4, 0
+CALL_MACRO, BASS_GALLOP, 1, 9, 0
+CALL_MACRO, BASS_GALLOP, 1, 5, 0
+CALL_MACRO, BASS_GALLOP, 1, 7, 0
+CALL_MACRO, BASS_GALLOP, 1, 4, 0
+CALL_MACRO, BASS_GALLOP, 1, 9, 0
+NOTE, 4, 4, 0, 33, 127,  480
+
+SET_TICK, 5, 960
+CALL_MACRO, SUB_GALLOP, 1, 5, 0
+CALL_MACRO, SUB_GALLOP, 1, 7, 0
+CALL_MACRO, SUB_GALLOP, 1, 4, 0
+CALL_MACRO, SUB_GALLOP, 1, 9, 0
+CALL_MACRO, SUB_GALLOP, 1, 5, 0
+CALL_MACRO, SUB_GALLOP, 1, 7, 0
+CALL_MACRO, SUB_GALLOP, 1, 4, 0
+CALL_MACRO, SUB_GALLOP, 1, 9, 0
+NOTE, 5, 5, 0, 21, 127,  480
+
+SET_TICK, 11, 960
+CALL_MACRO, SYNTH_OSTINATO, 1, 5, 0
+CALL_MACRO, SYNTH_OSTINATO, 1, 7, 0
+CALL_MACRO, SYNTH_OSTINATO, 1, 4, 0
+CALL_MACRO, SYNTH_OSTINATO, 1, 9, 0
+CALL_MACRO, SYNTH_OSTINATO, 1, 5, 0
+CALL_MACRO, SYNTH_OSTINATO, 1, 7, 0
+CALL_MACRO, SYNTH_OSTINATO, 1, 4, 0
+CALL_MACRO, SYNTH_OSTINATO, 1, 9, 0
+
+# ====================================================================
+# 3. Chords & Pad
+# ====================================================================
+SET_TICK, 6, 960
+CHORD, 6, 6,    0, F4maj, 115, 1920
+,,,          1920, G4maj,,
+,,,          1920, E4min,,
+,,,          1920, A4min,,
+,,,          1920, F4maj,,
+,,,          1920, G4maj,,
+,,,          1920, E4maj,,
+,,,          1920, A4min,,
+,,,          1920, A4min, 127,  480
+
+SET_TICK, 7, 960
+CHORD, 7, 7,    0, F4maj, 110, 1920
+,,,          1920, G4maj,,
+,,,          1920, E4min,,
+,,,          1920, A4min,,
+,,,          1920, F4maj,,
+,,,          1920, G4maj,,
+,,,          1920, E4maj,,
+,,,          1920, A4min,,
+,,,          1920, A4min, 127,  480
+
+SET_TICK, 10, 960
+CHORD, 10, 10,  0, F4maj,  80, 1920
+,,,          1920, G4maj,,
+,,,          1920, E4min,,
+,,,          1920, A4min,,
+,,,          1920, F4maj,,
+,,,          1920, G4maj,,
+,,,          1920, E4maj,,
+,,,          1920, A4min,,
+,,,          1920, A4min, 127,  480
+
+SET_TICK, 12, 960
+CHORD, 12, 12,  0, F4maj, 100, 1920
+,,,          1920, G4maj,,
+,,,          1920, E4min,,
+,,,          1920, A4min,,
+,,,          1920, F4maj,,
+,,,          1920, G4maj,,
+,,,          1920, E4maj,,
+,,,          1920, A4min,,
+,,,          1920, A4min, 127,  480
+
+# ====================================================================
+# 4. Brass & Accents
+# ====================================================================
+SET_TICK, 8, 1440
+CHORD, 8, 8,    0, F4maj, 127,  480
+,,,          1920, G4maj,,
+,,,          1920, E4min,,
+,,,          1920, A4min,,
+,,,          1920, F4maj,,
+,,,          1920, G4maj,,
+,,,          1920, E4maj,,
+,,,          1920, A4min,,
+,,,          1920, A4min, 127,  480
+
+SET_TICK, 13, 960
+NOTE, 13, 13,   0, 60, 127, 400
+,,,          7680, 60, 127, 400
+
+SET_TICK, 15, 960
+NOTE, 15, 15,   0, 48, 127, 400
+,,,          7680, 48, 127, 400
+
+# ====================================================================
+# 5. Lead Melody (Square + Calliope + Glockenspiel)
+# ====================================================================
+SET_TICK, 0, 960
+NOTE, 0, 0,     0, 81, 127, 400
+,,,           480, 84, 120, 400
+,,,           480, 77, 120, 400
+,,,           480, 79, 127, 400
+CC,   0, 0,   480, 111, 0
+
+NOTE, 0, 0,     0, 83, 127, 400
+,,,           480, 79, 120, 400
+,,,           480, 81, 120, 400
+,,,           480, 84, 127, 400
+CC,   0, 0,   480, 111, 0
+
+NOTE, 0, 0,     0, 79, 127, 400
+,,,           480, 76, 120, 400
+,,,           480, 79, 120, 400
+,,,           480, 83, 127, 400
+CC,   0, 0,   480, 111, 0
+
+NOTE, 0, 0,     0, 84, 127, 400
+,,,           480, 81, 120, 400
+,,,           480, 84, 120, 400
+,,,           480, 88, 127, 400
+CC,   0, 0,   480, 111, 0
+
+NOTE, 0, 0,     0, 89, 127, 800
+,,,           960, 88, 120, 400
+,,,           480, 84, 120, 400
+CC,   0, 0,   480, 111, 0
+
+NOTE, 0, 0,     0, 86, 127, 800
+,,,           960, 84, 120, 400
+,,,           480, 83, 120, 400
+CC,   0, 0,   480, 111, 0
+
+NOTE, 0, 0,     0, 88, 127, 400
+,,,           480, 83, 120, 400
+,,,           480, 80, 120, 400
+,,,           480, 83, 127, 400
+CC,   0, 0,   480, 111, 0
+
+NOTE, 0, 0,     0, 81, 127, 100
+,,,           120, 83, 120, 100
+,,,           120, 84, 120, 100
+,,,           120, 86, 120, 100
+,,,           120, 88, 120, 100
+,,,           120, 89, 120, 100
+,,,           120, 91, 120, 100
+,,,           120, 93, 127, 1000
+CC,   0, 0,  1080, 111, 0
+CHORD, 0, 0,    0, A5min, 127, 480
+
+SET_TICK, 1, 960
+NOTE, 1, 1,     0, 69, 120, 400
+,,,           480, 72, 115, 400
+,,,           480, 65, 115, 400
+,,,           480, 67, 120, 400
+CC,   1, 1,   480, 111, 0
+
+NOTE, 1, 1,     0, 71, 120, 400
+,,,           480, 67, 115, 400
+,,,           480, 69, 115, 400
+,,,           480, 72, 120, 400
+CC,   1, 1,   480, 111, 0
+
+NOTE, 1, 1,     0, 67, 120, 400
+,,,           480, 64, 115, 400
+,,,           480, 67, 115, 400
+,,,           480, 71, 120, 400
+CC,   1, 1,   480, 111, 0
+
+NOTE, 1, 1,     0, 72, 120, 400
+,,,           480, 69, 115, 400
+,,,           480, 72, 115, 400
+,,,           480, 76, 120, 400
+CC,   1, 1,   480, 111, 0
+
+NOTE, 1, 1,     0, 77, 120, 800
+,,,           960, 76, 115, 400
+,,,           480, 72, 115, 400
+CC,   1, 1,   480, 111, 0
+
+NOTE, 1, 1,     0, 74, 120, 800
+,,,           960, 72, 115, 400
+,,,           480, 71, 115, 400
+CC,   1, 1,   480, 111, 0
+
+NOTE, 1, 1,     0, 76, 120, 400
+,,,           480, 71, 115, 400
+,,,           480, 68, 115, 400
+,,,           480, 71, 120, 400
+CC,   1, 1,   480, 111, 0
+
+NOTE, 1, 1,     0, 69, 120, 100
+,,,           120, 71, 115, 100
+,,,           120, 72, 115, 100
+,,,           120, 74, 115, 100
+,,,           120, 76, 115, 100
+,,,           120, 77, 115, 100
+,,,           120, 79, 115, 100
+,,,           120, 81, 120, 1000
+CC,   1, 1,  1080, 111, 0
+CHORD, 1, 1,    0, A4min, 127, 480
+
+SET_TICK, 14, 960
+NOTE, 14, 14,   0, 81, 127, 400
+,,,           480, 84, 120, 400
+,,,           480, 77, 120, 400
+,,,           480, 79, 127, 400
+CC,   14, 14, 480, 111, 0
+
+NOTE, 14, 14,   0, 83, 127, 400
+,,,           480, 79, 120, 400
+,,,           480, 81, 120, 400
+,,,           480, 84, 127, 400
+CC,   14, 14, 480, 111, 0
+
+NOTE, 14, 14,   0, 79, 127, 400
+,,,           480, 76, 120, 400
+,,,           480, 79, 120, 400
+,,,           480, 83, 127, 400
+CC,   14, 14, 480, 111, 0
+
+NOTE, 14, 14,   0, 84, 127, 400
+,,,           480, 81, 120, 400
+,,,           480, 84, 120, 400
+,,,           480, 88, 127, 400
+CC,   14, 14, 480, 111, 0
+
+NOTE, 14, 14,   0, 89, 127, 800
+,,,           960, 88, 120, 400
+,,,           480, 84, 120, 400
+CC,   14, 14, 480, 111, 0
+
+NOTE, 14, 14,   0, 86, 127, 800
+,,,           960, 84, 120, 400
+,,,           480, 83, 120, 400
+CC,   14, 14, 480, 111, 0
+
+NOTE, 14, 14,   0, 88, 127, 400
+,,,           480, 83, 120, 400
+,,,           480, 80, 120, 400
+,,,           480, 83, 127, 400
+CC,   14, 14, 480, 111, 0
+
+NOTE, 14, 14,   0, 81, 127, 100
+,,,           120, 83, 120, 100
+,,,           120, 84, 120, 100
+,,,           120, 86, 120, 100
+,,,           120, 88, 120, 100
+,,,           120, 89, 120, 100
+,,,           120, 91, 120, 100
+,,,           120, 93, 127, 1000
+CC,   14, 14,1080, 111, 0

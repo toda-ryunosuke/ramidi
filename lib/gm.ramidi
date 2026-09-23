@@ -1,0 +1,39 @@
+# ====================================================================
+# Ramidi Standard Library: General MIDI (GM / GM2)
+# ====================================================================
+
+# --- 音源リセット ---
+
+# GM1 System On
+DEF_MACRO, GM_RESET
+  SYSEX, 0, 0, "F0 7E 7F 09 01 F7"
+END_MACRO
+
+# GM System Off
+DEF_MACRO, GM_OFF
+  SYSEX, 0, 0, "F0 7E 7F 09 02 F7"
+END_MACRO
+
+# GM2 System On
+DEF_MACRO, GM2_RESET
+  SYSEX, 0, 0, "F0 7E 7F 09 03 F7"
+END_MACRO
+
+
+# --- マスターコントロール ---
+# $1 に 10進数 (例: 127) または 16進数 (例: 0x7F) を渡すと、$X1 が自動で2桁Hex変換します。
+
+# マスターボリューム ($1: 0〜127)
+DEF_MACRO, GM_MASTER_VOL
+  SYSEX, 0, 0, "F0 7F 7F 04 01 00 $X1 F7"
+END_MACRO
+
+# マスターバランス/パン ($1: 0=L, 64=Center, 127=R)
+DEF_MACRO, GM_MASTER_PAN
+  SYSEX, 0, 0, "F0 7F 7F 04 02 00 $X1 F7"
+END_MACRO
+
+# マスターファインチューニング ($1: LSB, $2: MSB / 64 0 で A440Hz)
+DEF_MACRO, GM_MASTER_FINE_TUNE
+  SYSEX, 0, 0, "F0 7F 7F 04 04 $X1 $X2 F7"
+END_MACRO
