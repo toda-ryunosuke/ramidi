@@ -1,25 +1,43 @@
-name: Build Native Executables
+name: Build Ramidi Executables
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
     strategy:
       matrix:
+        # Linux, Mac, Windows の3環境で同時にビルド
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: graalvm/setup-graalvm@v1
+      # 1. リポジトリのコードをチェックアウト
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Java 25 (GraalVM) のセットアップ
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
         with:
           java-version: '25'
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build Native Binary
+
+      # 3. Gradleの実行権限付与 (Linux/Mac)
+      - name: Grant execute permission for gradlew
+        if: runner.os != 'Windows'
+        run: chmod +x gradlew
+
+      # 4. Native Image ビルドを実行
+      - name: Build Native Executable
         run: ./gradlew nativeCompile
+
+      # 5. ビルド成果物（.exeやバイナリ）をGitHubに保存
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
