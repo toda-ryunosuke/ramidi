@@ -19,6 +19,17 @@ Ramidi を実行するためには、お使いのシステムに以下のソフ�
 1. **FluidSynth**: MIDIファイルをオーディオ（WAV）にレンダリングするために使用します。
 2. **FFmpeg**: レンダリングされたオーディオファイルのマスタリング処理（音圧調整、エフェクト適用など）に使用します。
 
+### macOS の場合 (Homebrew)
+```bash
+brew install fluidsynth ffmpeg
+```
+
+### Windows の場合 (winget)
+```bash
+winget install FluidSynth.FluidSynth
+winget install Gyan.FFmpeg
+```
+
 ## 🎹 SoundFontの準備
 
 Ramidi で音を鳴らすには、**SoundFont (.sf2 または .sf3)** ファイルが必要です。
@@ -28,7 +39,8 @@ Ramidi で音を鳴らすには、**SoundFont (.sf2 または .sf3)** ファイ�
 - GeneralUser.sf2
 - FluidR3_GM.sf2
 
-設定ファイル `application.properties` にパスを指定して使用します。
+デフォルトでは `soundfonts` ディレクトリがあるので入手して配置してください。  
+※配置ディレクトリを変更したい場合は設定ファイル `application.properties` にパスを指定して使用します。
 
 ---
 

@@ -17,8 +17,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SoundFontProperties {
 
-    private String directory = "./"; // デフォルト値
-    private Map<String, String> aliases = new HashMap<>();
+    private String directory = "./soundfonts/"; // デフォルト値
+    private Map<String, String> aliases = new HashMap<>(Map.of(
+        "GeneralUser", "GeneralUser.sf2",
+        "FluidR3_GM", "FluidR3_GM.sf2"
+    ));
 
     private final MessageResolver messageResolver;
 

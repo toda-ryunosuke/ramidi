@@ -39,3 +39,5 @@ out/
 ### ramidi ###
 *.mid
 *.wav
+*.sf2
+*.sf3
