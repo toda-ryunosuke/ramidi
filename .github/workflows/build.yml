@@ -1,26 +1,24 @@
-name: Build Ramidi Executables
+name: Release Executables
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    tags:
+      - 'v*'  # v1.0.0 などのタグがpushされたら自動実行
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
+  release:
+    name: Build & Upload Release
     strategy:
       matrix:
-        # Linux, Mac, Windows の3環境で同時にビルド
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write  # Releaseを作成・編集する権限
 
     steps:
-      # 1. リポジトリのコードをチェックアウト
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Java 25 (GraalVM) のセットアップ
       - name: Set up GraalVM
         uses: graalvm/setup-graalvm@v1
         with:
@@ -28,18 +26,28 @@ jobs:
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. Gradleの実行権限付与 (Linux/Mac)
       - name: Grant execute permission for gradlew
         if: runner.os != 'Windows'
         run: chmod +x gradlew
 
-      # 4. Native Image ビルドを実行
       - name: Build Native Executable
         run: ./gradlew nativeCompile
 
-      # 5. ビルド成果物（.exeやバイナリ）をGitHubに保存
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      # OSごとにZip圧縮
+      - name: Zip Binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: Compress-Archive -Path build/native/nativeCompile/* -DestinationPath ramidi-windows.zip
+
+      - name: Zip Binary (Linux/Mac)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd build/native/nativeCompile/
+          zip -r ../../../ramidi-${{ matrix.os }}.zip .
+
+      # Releases ページへ自動アップロード
+      - name: Upload to Release Assets
+        uses: softprops/action-gh-release@v2
         with:
-          name: ramidi-${{ matrix.os }}
-          path: build/native/nativeCompile/
+          files: ramidi-*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
