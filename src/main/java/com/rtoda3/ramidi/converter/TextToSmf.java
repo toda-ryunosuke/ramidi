@@ -30,9 +30,14 @@ public class TextToSmf {
     private static final int MIDI_RESOLUTION = 480; // PPQ (Ticks per Quarter Note)
     private static final int MIDI_TRACK_LIMIT = 128;
 
+    // Meta Message Types
+    private static final int META_TEMPO = 0x51;
+    private static final int META_TIME_SIGNATURE = 0x58;
+    private static final int META_KEY_SIGNATURE = 0x59;
+
     private final MessageResolver messageResolver;
 
-    public byte[] assemble(List<RamidiInstruction> instructions) throws IOException {
+    public byte[] assemble(List<RamidiInstruction> instructions) {
         try {
             var sequence = new Sequence(Sequence.PPQ, MIDI_RESOLUTION);
             var tracks = new Track[MIDI_TRACK_LIMIT];
@@ -51,36 +56,33 @@ public class TextToSmf {
                 return outputStream.toByteArray();
             }
 
-        } catch (InvalidMidiDataException e) {
+        } catch (InvalidMidiDataException | IOException e) {
             var msg = messageResolver.getMessage("error.smf.structure.invalid");
             throw new RamidiException(msg, e);
         }
-
-
     }
 
     private void addEventFromInstruction(RamidiInstruction instruction, Sequence sequence,
         Track[] tracks) throws InvalidMidiDataException {
         var command = instruction.command();
-        var args = instruction.args();
 
         switch (command) {
             // --- Channel Voice Messages ---
-            case "NOTE" -> addNoteEvent(args, sequence, tracks);
-            case "CC" -> addControlChangeEvent(args, sequence, tracks);
-            case "PROGRAM" -> addProgramChangeEvent(args, sequence, tracks);
-            case "BEND" -> addPitchBendEvent(args, sequence, tracks);
-            case "POLY_PRESS" -> addPolyPressureEvent(args, sequence, tracks);
-            case "CHAN_PRESS" -> addChannelPressureEvent(args, sequence, tracks);
+            case "NOTE" -> addNoteEvent(instruction, sequence, tracks);
+            case "CC" -> addControlChangeEvent(instruction, sequence, tracks);
+            case "PROGRAM" -> addProgramChangeEvent(instruction, sequence, tracks);
+            case "BEND" -> addPitchBendEvent(instruction, sequence, tracks);
+            case "POLY_PRESS" -> addPolyPressureEvent(instruction, sequence, tracks);
+            case "CHAN_PRESS" -> addChannelPressureEvent(instruction, sequence, tracks);
 
             // --- Meta Messages (Timing & Structure) ---
-            case "TEMPO" -> addTempoEvent(args, sequence, tracks);
-            case "TIMESIG" -> addTimeSignatureEvent(args, sequence, tracks);
-            case "KEYSIG" -> addKeySignatureEvent(args, sequence, tracks);
-            case "META_TEXT" -> addMetaTextEvent(args, sequence, tracks);
+            case "TEMPO" -> addTempoEvent(instruction, sequence, tracks);
+            case "TIMESIG" -> addTimeSignatureEvent(instruction, sequence, tracks);
+            case "KEYSIG" -> addKeySignatureEvent(instruction, sequence, tracks);
+            case "META_TEXT" -> addMetaTextEvent(instruction, sequence, tracks);
 
             // --- System Exclusive ---
-            case "SYSEX" -> addSysexEvent(args, sequence, tracks);
+            case "SYSEX" -> addSysexEvent(instruction, sequence, tracks);
 
             // --- その他 ---
             default -> {
@@ -90,102 +92,121 @@ public class TextToSmf {
         }
     }
 
-    private void addNoteEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addNoteEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var track = getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0)));
-        track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, Integer.parseInt(p.get(1)),
-            Integer.parseInt(p.get(3)), Integer.parseInt(p.get(4))), Long.parseLong(p.get(2))));
-        track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, Integer.parseInt(p.get(1)),
-            Integer.parseInt(p.get(3)), 0), Long.parseLong(p.get(2)) + Long.parseLong(p.get(5))));
+        var track = getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction);
+        track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_ON, instruction.getIntArg(1),
+            instruction.getIntArg(3), instruction.getIntArg(4)), instruction.getLongArg(2)));
+        track.add(new MidiEvent(new ShortMessage(ShortMessage.NOTE_OFF, instruction.getIntArg(1),
+            instruction.getIntArg(3), 0), instruction.getLongArg(2) + instruction.getLongArg(5)));
     }
 
-    private void addControlChangeEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addControlChangeEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var track = getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0)));
+        var track = getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction);
         track.add(new MidiEvent(
-            new ShortMessage(ShortMessage.CONTROL_CHANGE, Integer.parseInt(p.get(1)),
-                Integer.parseInt(p.get(3)), Integer.parseInt(p.get(4))), Long.parseLong(p.get(2))));
+            new ShortMessage(ShortMessage.CONTROL_CHANGE, instruction.getIntArg(1),
+                instruction.getIntArg(3), instruction.getIntArg(4)), instruction.getLongArg(2)));
     }
 
-    private void addProgramChangeEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addProgramChangeEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var track = getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0)));
+        var track = getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction);
         track.add(new MidiEvent(
-            new ShortMessage(ShortMessage.PROGRAM_CHANGE, Integer.parseInt(p.get(1)),
-                Integer.parseInt(p.get(3)), 0), Long.parseLong(p.get(2))));
+            new ShortMessage(ShortMessage.PROGRAM_CHANGE, instruction.getIntArg(1),
+                instruction.getIntArg(3), 0), instruction.getLongArg(2)));
     }
 
-    private void addPitchBendEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addPitchBendEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var val = Integer.parseInt(p.get(3)) + 8192;
+        var val = instruction.getIntArg(3) + 8192;
         val = Math.clamp(val, 0, 16383);
-        var track = getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0)));
+        var track = getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction);
         track.add(new MidiEvent(
-            new ShortMessage(ShortMessage.PITCH_BEND, Integer.parseInt(p.get(1)), val & 0x7F,
-                (val >> 7) & 0x7F), Long.parseLong(p.get(2))));
+            new ShortMessage(ShortMessage.PITCH_BEND, instruction.getIntArg(1), val & 0x7F,
+                (val >> 7) & 0x7F), instruction.getLongArg(2)));
     }
 
-    private void addPolyPressureEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addPolyPressureEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var track = getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0)));
+        var track = getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction);
         track.add(new MidiEvent(
-            new ShortMessage(ShortMessage.POLY_PRESSURE, Integer.parseInt(p.get(1)),
-                Integer.parseInt(p.get(3)), Integer.parseInt(p.get(4))), Long.parseLong(p.get(2))));
+            new ShortMessage(ShortMessage.POLY_PRESSURE, instruction.getIntArg(1),
+                instruction.getIntArg(3), instruction.getIntArg(4)), instruction.getLongArg(2)));
     }
 
-    private void addChannelPressureEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addChannelPressureEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var track = getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0)));
+        var track = getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction);
         track.add(new MidiEvent(
-            new ShortMessage(ShortMessage.CHANNEL_PRESSURE, Integer.parseInt(p.get(1)),
-                Integer.parseInt(p.get(3)), 0), Long.parseLong(p.get(2))));
+            new ShortMessage(ShortMessage.CHANNEL_PRESSURE, instruction.getIntArg(1),
+                instruction.getIntArg(3), 0), instruction.getLongArg(2)));
     }
 
-    private void addTempoEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addTempoEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var mpqn = (int) Math.round(60_000_000.0 / Double.parseDouble(p.get(2)));
+        var mpqn = (int) Math.round(60_000_000.0 / instruction.getDoubleArg(2));
         var data = new byte[]{(byte) ((mpqn >> 16) & 0xFF), (byte) ((mpqn >> 8) & 0xFF),
             (byte) (mpqn & 0xFF)};
-        getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0))).add(
-            new MidiEvent(new MetaMessage(0x51, data, 3), Long.parseLong(p.get(1))));
+        getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction).add(
+            new MidiEvent(new MetaMessage(META_TEMPO, data, 3), instruction.getLongArg(1)));
     }
 
-    private void addTimeSignatureEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addTimeSignatureEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var data = new byte[]{(byte) Integer.parseInt(p.get(2)),
-            (byte) (Math.log(Integer.parseInt(p.get(3))) / Math.log(2)), 24, 8};
-        getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0))).add(
-            new MidiEvent(new MetaMessage(0x58, data, 4), Long.parseLong(p.get(1))));
+        var denominator = instruction.getIntArg(3);
+        if (Integer.bitCount(denominator) != 1) {
+            var msg = messageResolver.getMessage("error.smf.timesig.denominator.invalid",
+                denominator);
+            throw new RamidiException(msg, instruction);
+        }
+        var denomPower = (byte) Integer.numberOfTrailingZeros(denominator);
+        var data = new byte[]{(byte) instruction.getIntArg(2), denomPower, 24, 8};
+        getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction).add(
+            new MidiEvent(new MetaMessage(META_TIME_SIGNATURE, data, 4),
+                instruction.getLongArg(1)));
     }
 
-    private void addKeySignatureEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addKeySignatureEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var data = new byte[]{(byte) Integer.parseInt(p.get(2)), (byte) Integer.parseInt(p.get(3))};
-        getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0))).add(
-            new MidiEvent(new MetaMessage(0x59, data, 2), Long.parseLong(p.get(1))));
+        var data = new byte[]{(byte) instruction.getIntArg(2), (byte) instruction.getIntArg(3)};
+        getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction).add(
+            new MidiEvent(new MetaMessage(META_KEY_SIGNATURE, data, 2),
+                instruction.getLongArg(1)));
     }
 
-    private void addMetaTextEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addMetaTextEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var textBytes = p.get(3).getBytes(StandardCharsets.UTF_8);
-        getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0))).add(
-            new MidiEvent(new MetaMessage(Integer.parseInt(p.get(2)), textBytes, textBytes.length),
-                Long.parseLong(p.get(1))));
+        var textBytes = instruction.getStringArg(3).getBytes(StandardCharsets.UTF_8);
+        getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction).add(
+            new MidiEvent(new MetaMessage(instruction.getIntArg(2), textBytes, textBytes.length),
+                instruction.getLongArg(1)));
     }
 
-    private void addSysexEvent(List<String> p, Sequence seq, Track[] trks)
+    private void addSysexEvent(RamidiInstruction instruction, Sequence seq, Track[] trks)
         throws InvalidMidiDataException {
-        var hexTokens = p.get(2).split("\\s+");
+        var hexString = instruction.getStringArg(2);
+        if (hexString.isBlank()) {
+            var msg = messageResolver.getMessage("error.smf.sysex.data.empty");
+            throw new RamidiException(msg, instruction);
+        }
+        var hexTokens = hexString.trim().split("\\s+");
         var sysexBytes = new byte[hexTokens.length];
-        for (int i = 0; i < hexTokens.length; i++) {
+        for (var i = 0; i < hexTokens.length; i++) {
             sysexBytes[i] = (byte) Integer.parseInt(hexTokens[i], 16);
         }
-        getOrCreateTrack(seq, trks, Integer.parseInt(p.get(0))).add(
+        getOrCreateTrack(seq, trks, instruction.getIntArg(0), instruction).add(
             new MidiEvent(new SysexMessage(sysexBytes, sysexBytes.length),
-                Long.parseLong(p.get(1))));
+                instruction.getLongArg(1)));
     }
 
-    private Track getOrCreateTrack(Sequence sequence, Track[] tracks, int trkNum) {
+    private Track getOrCreateTrack(Sequence sequence, Track[] tracks, int trkNum,
+        RamidiInstruction instruction) {
+        if (trkNum < 0 || trkNum >= MIDI_TRACK_LIMIT) {
+            var msg = messageResolver.getMessage("error.smf.track.limit.exceeded", trkNum,
+                MIDI_TRACK_LIMIT - 1);
+            throw new RamidiException(msg, instruction);
+        }
         if (tracks[trkNum] == null) {
             tracks[trkNum] = sequence.createTrack();
         }

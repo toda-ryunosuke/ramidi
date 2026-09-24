@@ -48,7 +48,7 @@ public class RamidiInstruction {
 
         this.args = range(0, this.args.size())
             .mapToObj(i -> {
-                String currentArg = this.args.get(i);
+                var currentArg = this.args.get(i);
                 // 空文字 かつ 前行に同じ位置の引数が存在する場合のみ引き継ぐ
                 if (currentArg.isEmpty() && i < prev.args().size()) {
                     return prev.args().get(i);
@@ -61,10 +61,6 @@ public class RamidiInstruction {
 
     /**
      * 引数で指定されたオブジェクトのコマンドと引数を置き換えた新しいオブジェクトを生成するコンストラクタ
-     *
-     * @param instruction
-     * @param command
-     * @param args
      */
     public RamidiInstruction(RamidiInstruction instruction, String command, List<String> args) {
         this(instruction.sourcePath(), instruction.lineNumber(), instruction.rawText());

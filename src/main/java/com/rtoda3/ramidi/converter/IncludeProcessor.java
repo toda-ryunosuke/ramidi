@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,13 +36,14 @@ public class IncludeProcessor {
 
         // 循環参照の防止
         if (visited.contains(normalizedPath)) {
-            log.warn("Circular reference detected for include: {}. Skipping.", normalizedPath);
+            var warnMsg = messageResolver.getMessage("warn.include.circular", normalizedPath);
+            log.warn(warnMsg);
             return List.of();
         }
         visited.add(normalizedPath);
 
         if (!Files.exists(normalizedPath)) {
-            String msg = messageResolver.getMessage("error.include.notfound", normalizedPath);
+            var msg = messageResolver.getMessage("error.include.notfound", normalizedPath);
             throw new RamidiException(msg);
         }
 
@@ -49,20 +51,20 @@ public class IncludeProcessor {
         try {
             rawLines = Files.readAllLines(normalizedPath, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            String msg = messageResolver.getMessage("error.include.readfailed", normalizedPath);
+            var msg = messageResolver.getMessage("error.include.readfailed", normalizedPath);
             throw new RamidiException(msg, e);
         }
 
         var resultLines = new ArrayList<RamidiInstruction>();
         var parentDir = normalizedPath.getParent();
 
-        for (int i = 0; i < rawLines.size(); i++) {
+        // INCLUDEコマンドかどうかをにチェック
+        IntStream.range(0, rawLines.size()).forEach(i -> {
             var line = rawLines.get(i);
             var lineNumber = i + 1;
 
             var ramidiInstruction = new RamidiInstruction(normalizedPath, lineNumber, line);
 
-            // INCLUDEコマンドかどうかをにチェック
             if ("INCLUDE".equals(ramidiInstruction.command())
                 && !ramidiInstruction.args().isEmpty()) {
                 var relativePathStr = ramidiInstruction.args().getFirst();
@@ -79,7 +81,8 @@ public class IncludeProcessor {
                     resultLines.add(ramidiInstruction);
                 }
             }
-        }
+        });
+
         return resultLines;
     }
 }

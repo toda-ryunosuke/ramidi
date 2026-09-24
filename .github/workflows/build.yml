@@ -30,21 +30,16 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x gradlew
 
-      - name: Build Native Executable
-        run: ./gradlew nativeCompile
+      # 1. GradleプラグインでネイティブコンパイルとZIPパッケージングを自動実行
+      - name: Build and Package
+        run: ./gradlew nativeCompile distZip
 
-      # OSごとにZip圧縮
-      - name: Zip Binary (Windows)
-        if: matrix.os == 'windows-latest'
-        run: Compress-Archive -Path build/native/nativeCompile/* -DestinationPath ramidi-windows.zip
+      # 2. 生成されたZIP(ramidi-x.x.x.zip等)をOS入りの名前にリネーム（上書き防止）
+      - name: Rename Zip
+        shell: bash
+        run: mv build/distributions/*.zip ramidi-${{ matrix.os }}.zip
 
-      - name: Zip Binary (Linux/Mac)
-        if: matrix.os != 'windows-latest'
-        run: |
-          cd build/native/nativeCompile/
-          zip -r ../../../ramidi-${{ matrix.os }}.zip .
-
-      # Releases ページへ自動アップロード
+      # 3. Releases ページへ自動アップロード
       - name: Upload to Release Assets
         uses: softprops/action-gh-release@v2
         with:

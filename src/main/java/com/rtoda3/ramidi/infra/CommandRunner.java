@@ -45,9 +45,9 @@ public class CommandRunner {
             stderrThread.start();
 
             // Wait for the process to complete
-            if (!process.waitFor(60, TimeUnit.SECONDS)) {
+            if (!process.waitFor(5, TimeUnit.MINUTES)) {
                 process.destroyForcibly();
-                throw new IOException("Command timed out after 60 seconds.");
+                throw new IOException("Command timed out after 5 minutes.");
             }
             
             // Wait for reader threads to finish

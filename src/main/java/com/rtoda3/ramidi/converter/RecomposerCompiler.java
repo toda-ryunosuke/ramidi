@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * TODO: ドラム入力は未実装
+ * ドラム入力は未実装
  */
 @Service
 @Slf4j
@@ -69,7 +69,7 @@ public class RecomposerCompiler {
                     throw new RamidiException(msg, instruction);
                 }
 
-                for (int c = 0; c < count; c++) {
+                for (var c = 0; c < count; c++) {
                     for (var bodyInstruction : body) {
                         afterMacroInstructions.add(
                             applyMacroArgs(bodyInstruction, transpose, velOffset, extraArgs));
@@ -93,7 +93,7 @@ public class RecomposerCompiler {
         var substitutedArgs = new ArrayList<String>();
         for (var arg : rawArgs) {
             var tempArg = arg;
-            for (int k = 0; k < extraArgs.size(); k++) {
+            for (var k = 0; k < extraArgs.size(); k++) {
                 var rawValue = extraArgs.get(k);
                 var index = k + 1;
 
@@ -101,7 +101,7 @@ public class RecomposerCompiler {
                 tempArg = tempArg.replace("$" + index, rawValue);
 
                 // 16進数フォーマット用数値パース
-                int numValue = parseArgToNumber(rawValue);
+                var numValue = parseArgToNumber(rawValue);
 
                 // 16進数2桁ゼロ埋め置換 ($x1: 小文字, $X1: 大文字)
                 tempArg = tempArg.replace("$x" + index, String.format("%02x", numValue));
@@ -227,7 +227,7 @@ public class RecomposerCompiler {
                         var gate = instruction.getLongArg(5);
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var notes = parseChordName(chordName, instruction);
-                        for (int note : notes) {
+                        for (var note : notes) {
                             pureInstructions.add(new RamidiInstruction(instruction, "NOTE",
                                 List.of(String.valueOf(trk), String.valueOf(ch),
                                     String.valueOf(trackTicks[trk]),
@@ -245,7 +245,7 @@ public class RecomposerCompiler {
                         var arpDelay = instruction.getLongArg(6);
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var notes = parseChordName(chordName, instruction);
-                        for (int i = 0; i < notes.length; i++) {
+                        for (var i = 0; i < notes.length; i++) {
                             pureInstructions.add(new RamidiInstruction(instruction, "NOTE",
                                 List.of(String.valueOf(trk), String.valueOf(ch),
                                     String.valueOf(trackTicks[trk] + (i * arpDelay)),
@@ -264,7 +264,7 @@ public class RecomposerCompiler {
                         var step = instruction.getLongArg(7);
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var startTick = trackTicks[trk];
-                        for (long t = 0; t <= duration; t += step) {
+                        for (var t = 0L; t <= duration; t += step) {
                             var progress = (double) t / duration;
                             var currentVal = (int) Math.round(
                                 startVal + (endVal - startVal) * progress);
@@ -285,7 +285,7 @@ public class RecomposerCompiler {
                         var step = instruction.getLongArg(6);
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var startTick = trackTicks[trk];
-                        for (long t = 0; t <= duration; t += step) {
+                        for (var t = 0L; t <= duration; t += step) {
                             var progress = (double) t / duration;
                             var currentVal = (int) Math.round(
                                 startVal + (endVal - startVal) * progress);
@@ -304,7 +304,7 @@ public class RecomposerCompiler {
                         var step = instruction.getLongArg(5);
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var startTick = trackTicks[trk];
-                        for (long t = 0; t <= duration; t += step) {
+                        for (var t = 0L; t <= duration; t += step) {
                             var progress = (double) t / duration;
                             var currentBpm = startBpm + (endBpm - startBpm) * progress;
                             pureInstructions.add(new RamidiInstruction(instruction, "TEMPO",
@@ -468,7 +468,7 @@ public class RecomposerCompiler {
 
         List<RamidiInstruction> flatten(int currentDepth) {
             var result = new ArrayList<RamidiInstruction>();
-            for (int i = 0; i < totalCount; i++) {
+            for (var i = 0; i < totalCount; i++) {
                 var isLast = (i == totalCount - 1);
                 var execute = true;
                 for (var child : children) {

@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'org.graalvm.buildtools.native' version '1.1.8'
+    id 'distribution'
 }
 
 group = 'com.rtoda3'
@@ -21,6 +22,7 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -29,6 +31,38 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+// 全ての依存関係からデフォルトのロギング（Logback）を一括除外
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+}
+
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// --- 配布用ZIP/TARの定義 ---
+distributions {
+    main {
+        distributionBaseName = 'ramidi'
+        contents {
+            exclude '**/*.mid'
+            exclude '**/*.wav'
+            exclude '**/*.wav'
+            exclude '**/*.sf*'
+            exclude '**/*.mp*'
+
+            // ネイティブビルドの出力物をアーカイブのルートに含める
+            from(tasks.named('nativeCompile').map { it.outputs.files }) {
+                into('bin')
+            }
+
+            from('lib') { into 'lib' }
+            from('sample') { into 'sample' }
+            from('soundfonts') { into 'soundfonts' }
+            from('application.properties')
+            from('README.md')
+        }
+    }
 }
