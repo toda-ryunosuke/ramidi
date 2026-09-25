@@ -62,7 +62,7 @@ public class RamidiApplication {
             if (args.containsOption("stage")) {
                 var stageValues = args.getOptionValues("stage");
                 if (stageValues != null && !stageValues.isEmpty()) {
-                    stage = TargetStage.fromString(stageValues.get(0));
+                    stage = TargetStage.fromString(stageValues.getFirst());
                 }
             }
 
@@ -73,7 +73,7 @@ public class RamidiApplication {
             if (args.containsOption("cover")) {
                 var coverValues = args.getOptionValues("cover");
                 if (coverValues != null && !coverValues.isEmpty()) {
-                    coverPath = Path.of(coverValues.get(0));
+                    coverPath = Path.of(coverValues.getFirst());
                 }
             }
 
@@ -88,16 +88,16 @@ public class RamidiApplication {
             var wavPath = Path.of(basePathStr + ".wav");
             var mp4Path = Path.of(basePathStr + ".mp4");
             generated.midi().ifPresent(data -> saveFile(midiPath, data));
-            generated.rawWav().ifPresent(data -> saveFile(rawWavPath, data));
-            generated.masteredWav().ifPresent(data -> saveFile(wavPath, data));
+            generated.raw().ifPresent(data -> saveFile(rawWavPath, data));
+            generated.wav().ifPresent(data -> saveFile(wavPath, data));
             generated.mp4().ifPresent(data -> saveFile(mp4Path, data));
 
             // 最終成果物を再生 ( --no-play オプションがなければ再生 )
             if (!args.containsOption("no-play")) {
                 var targetFile = switch (stage) {
                     case MIDI -> midiPath.toFile();
-                    case RAW_WAV -> wavPath.toFile();
-                    case MASTERED_WAV -> rawWavPath.toFile();
+                    case RAW -> rawWavPath.toFile();
+                    case WAV -> wavPath.toFile();
                     case MP4 -> mp4Path.toFile();
                 };
 

@@ -48,7 +48,7 @@ PROGRAM, 14, 14, 0, 9   # Glockenspiel (鉄琴)
 PROGRAM, 15, 15, 0, 118 # Synth Drum
 
 # ライブラリ読み込み
-INCLUDE, ../lib/gm.ramidi
+USER_PRESET, rtoda3/gm
 INCLUDE, drums.ramidi
 INCLUDE, chords.ramidi
 

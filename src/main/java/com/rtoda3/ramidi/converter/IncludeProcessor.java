@@ -11,13 +11,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * INCLUDEディレクティブを再帰的に解決し、すべてのファイルの内容をRamidiLineのリストとしてまとめる責務を負います。
+ * 組み込み系ディレクティブを再帰的に解決し、すべてのファイルの内容をRamidiLineのリストとしてまとめる責務を負います。
  */
 @Service
 @Slf4j
@@ -25,6 +25,10 @@ import org.springframework.stereotype.Service;
 public class IncludeProcessor {
 
     private final MessageResolver messageResolver;
+
+    // ユーザープリセットの置き場所
+    @Value("${ramidi.preset.directory:./user_presets/}")
+    private String presetDirectory;
 
     public List<RamidiInstruction> process(Path rootPath) {
         var visited = new HashSet<Path>();
@@ -34,7 +38,7 @@ public class IncludeProcessor {
     private List<RamidiInstruction> processRecursive(Path currentPath, Set<Path> visited) {
         var normalizedPath = currentPath.toAbsolutePath().normalize();
 
-        // 循環参照の防止
+        // 循環参照の防止と警告
         if (visited.contains(normalizedPath)) {
             var warnMsg = messageResolver.getMessage("warn.include.circular", normalizedPath);
             log.warn(warnMsg);
@@ -57,31 +61,47 @@ public class IncludeProcessor {
 
         var resultLines = new ArrayList<RamidiInstruction>();
         var parentDir = normalizedPath.getParent();
+        var presetRootDir = Path.of(presetDirectory).toAbsolutePath().normalize();
 
-        // INCLUDEコマンドかどうかをにチェック
-        IntStream.range(0, rawLines.size()).forEach(i -> {
-            var line = rawLines.get(i);
-            var lineNumber = i + 1;
+        for (var i = 0; i < rawLines.size(); i++) {
+            var instruction = new RamidiInstruction(normalizedPath, i + 1, rawLines.get(i));
+            var cmd = instruction.command();
+            var args = instruction.args();
 
-            var ramidiInstruction = new RamidiInstruction(normalizedPath, lineNumber, line);
+            if ("INCLUDE".equals(cmd)) {
+                if (args.isEmpty() || args.getFirst().isBlank()) {
+                    var msg = messageResolver.getMessage("error.include.args.missing");
+                    throw new RamidiException(msg, instruction);
+                }
 
-            if ("INCLUDE".equals(ramidiInstruction.command())
-                && !ramidiInstruction.args().isEmpty()) {
-                var relativePathStr = ramidiInstruction.args().getFirst();
+                var pathStr = args.getFirst().endsWith(".ramidi")
+                    ? args.getFirst()
+                    : args.getFirst() + ".ramidi";
                 var childPath = (parentDir != null)
-                    ? parentDir.resolve(relativePathStr)
-                    : Path.of(relativePathStr);
+                    ? parentDir.resolve(pathStr)
+                    : Path.of(pathStr);
 
                 // 子ファイルの内容を再帰的に読み込んで展開挿入
-                var childLines = processRecursive(childPath, new HashSet<>(visited));
-                resultLines.addAll(childLines);
-            } else {
-                // INCLUDE以外の行は、空行でなければ追加
-                if (!ramidiInstruction.isEmpty()) {
-                    resultLines.add(ramidiInstruction);
+                resultLines.addAll(processRecursive(childPath, new HashSet<>(visited)));
+
+            } else if ("USER_PRESET".equals(cmd)) {
+                if (args.isEmpty() || args.getFirst().isBlank()) {
+                    var msg = messageResolver.getMessage("error.user_preset.args.missing");
+                    throw new RamidiException(msg, instruction);
                 }
+
+                var pathStr = args.getFirst().endsWith(".ramidi")
+                    ? args.getFirst()
+                    : args.getFirst() + ".ramidi";
+                var childPath = presetRootDir.resolve(pathStr);
+
+                // 子ファイルの内容を再帰的に読み込んで展開挿入
+                resultLines.addAll(processRecursive(childPath, new HashSet<>(visited)));
+
+            } else if (!instruction.isEmpty()) {
+                resultLines.add(instruction);
             }
-        });
+        }
 
         return resultLines;
     }

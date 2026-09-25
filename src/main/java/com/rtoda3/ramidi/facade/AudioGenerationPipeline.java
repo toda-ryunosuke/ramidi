@@ -37,20 +37,17 @@ public class AudioGenerationPipeline {
     private final AudioToVideoProcessor audioToVideoProcessor;
 
     public enum TargetStage {
-        MIDI,           // MIDI生成までで終了
-        RAW_WAV,        // SoundFontレンダリングまでで終了
-        MASTERED_WAV,   // マスタリング処理までで終了
-        MP4             // 動画生成まですべて実行（デフォルト）
+        MIDI,       // MIDI生成までで終了
+        RAW,        // SoundFontレンダリングまでで終了
+        WAV,        // マスタリング処理までで終了
+        MP4         // 動画生成まですべて実行（デフォルト）
         ;
 
         public static TargetStage fromString(String value) {
-            if (value == null || value.isBlank()) {
-                return MP4; // デフォルトは最後まで
-            }
             return switch (value.toLowerCase()) {
                 case "midi" -> MIDI;
-                case "raw" -> RAW_WAV;
-                case "master" -> MASTERED_WAV;
+                case "raw" -> RAW;
+                case "wav" -> WAV;
                 case "mp4" -> MP4;
                 default -> throw new IllegalArgumentException("無効なステージ指定です: " + value);
             };
@@ -63,8 +60,8 @@ public class AudioGenerationPipeline {
 
     public record Generated(
         Optional<byte[]> midi,
-        Optional<byte[]> rawWav,
-        Optional<byte[]> masteredWav,
+        Optional<byte[]> raw,
+        Optional<byte[]> wav,
         Optional<byte[]> mp4) {
 
     }
@@ -97,7 +94,7 @@ public class AudioGenerationPipeline {
         var sfPath = soundFontProperties.resolvePath(data.meta().soundFontAlias());
         var rawWavData = midiSynthesizer.renderMidiToRawWav(midi, sfPath);
 
-        if (command.targetStage() == TargetStage.RAW_WAV) {
+        if (command.targetStage() == TargetStage.RAW) {
             log.info("TargetStage RAW_WAV に到達したため処理を終了します");
             return new Generated(Optional.of(midi), Optional.of(rawWavData), Optional.empty(),
                 Optional.empty());
@@ -107,7 +104,7 @@ public class AudioGenerationPipeline {
         var masteringConfig = data.meta().masteringConfig();
         var masteredWavData = audioMasteringProcessor.masterWav(rawWavData, masteringConfig);
 
-        if (command.targetStage() == TargetStage.MASTERED_WAV) {
+        if (command.targetStage() == TargetStage.WAV) {
             log.info("TargetStage MASTERED_WAV に到達したため処理を終了します");
             return new Generated(Optional.of(midi), Optional.of(rawWavData),
                 Optional.of(masteredWavData), Optional.empty());

@@ -273,7 +273,6 @@ public class RecomposerCompiler {
                                     String.valueOf(startTick + t), String.valueOf(ccNum),
                                     String.valueOf(currentVal))));
                         }
-                        trackTicks[trk] += duration;
                     }
                     case "SWEEP_BEND" -> {
                         var trk = instruction.getIntArg(0);
@@ -293,7 +292,6 @@ public class RecomposerCompiler {
                                 List.of(String.valueOf(trk), String.valueOf(ch),
                                     String.valueOf(startTick + t), String.valueOf(currentVal))));
                         }
-                        trackTicks[trk] += duration;
                     }
                     case "SWEEP_TEMPO" -> {
                         var trk = instruction.getIntArg(0);
@@ -311,7 +309,6 @@ public class RecomposerCompiler {
                                 List.of(String.valueOf(trk), String.valueOf(startTick + t),
                                     String.format("%.2f", currentBpm))));
                         }
-                        trackTicks[trk] += duration;
                     }
                     case "TEMPO" -> {
                         var trk = instruction.getIntArg(0);
