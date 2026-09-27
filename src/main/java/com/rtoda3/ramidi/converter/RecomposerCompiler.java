@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,64 +24,81 @@ public class RecomposerCompiler {
 
     private final MessageResolver messageResolver;
 
+    // マーカーの位置を記憶するマップ（ラベル名 -> 絶対Tick数）
+    private final Map<String, Long> markers = new HashMap<>();
+
     public List<RamidiInstruction> compile(List<RamidiInstruction> instructions) {
         var expandedInstructions = preprocess(instructions);
         return transpileToPureSmf(expandedInstructions);
     }
 
     private List<RamidiInstruction> preprocess(List<RamidiInstruction> instructions) {
+        // ★ macroMap はループの外で宣言し、2回目のループ以降もマクロ定義を保持させる
         var macroMap = new HashMap<String, List<RamidiInstruction>>();
-        var afterMacroInstructions = new ArrayList<RamidiInstruction>();
+        var currentInstructions = instructions;
 
-        var i = 0;
-        while (i < instructions.size()) {
-            var instruction = instructions.get(i);
-            var cmd = instruction.command();
+        // ネストされた CALL_MACRO が無くなるまで最大10回繰り返し展開する
+        for (var pass = 0; pass < 10; pass++) {
+            var afterMacroInstructions = new ArrayList<RamidiInstruction>();
+            var hasCallMacro = false;
 
-            if ("DEF_MACRO".equals(cmd) || "DEF_PATTERN".equals(cmd)) {
-                var macroId = instruction.getStringArg(0);
-                var body = new ArrayList<RamidiInstruction>();
-                i++;
-                while (i < instructions.size()) {
-                    var subInstruction = instructions.get(i);
-                    if ("END_MACRO".equals(subInstruction.command()) || "END_PATTERN".equals(
-                        subInstruction.command())) {
-                        break;
-                    }
-                    body.add(subInstruction);
+            var i = 0;
+            while (i < currentInstructions.size()) {
+                var instruction = currentInstructions.get(i);
+                var cmd = instruction.command();
+
+                if ("DEF_MACRO".equals(cmd) || "DEF_PATTERN".equals(cmd)) {
+                    var macroId = instruction.getStringArg(0);
+                    var body = new ArrayList<RamidiInstruction>();
                     i++;
-                }
-                macroMap.put(macroId, body);
-            } else if ("CALL_MACRO".equals(cmd) || "CALL_PATTERN".equals(cmd)) {
-                var macroId = instruction.getStringArg(0);
-                var count = instruction.getIntArg(1);
-                var transpose = instruction.getIntArg(2);
-                var velOffset = instruction.getIntArg(3);
-
-                // index 4 以降のパラメータを $1, $2, ... として取得
-                var extraArgs = instruction.args().size() > 4
-                    ? instruction.args().subList(4, instruction.args().size())
-                    : List.<String>of();
-
-                var body = macroMap.get(macroId);
-                if (body == null) {
-                    var msg = messageResolver.getMessage("error.compiler.macro.notdefined",
-                        macroId);
-                    throw new RamidiException(msg, instruction);
-                }
-
-                for (var c = 0; c < count; c++) {
-                    for (var bodyInstruction : body) {
-                        afterMacroInstructions.add(
-                            applyMacroArgs(bodyInstruction, transpose, velOffset, extraArgs));
+                    while (i < currentInstructions.size()) {
+                        var subInstruction = currentInstructions.get(i);
+                        if ("END_MACRO".equals(subInstruction.command()) || "END_PATTERN".equals(
+                            subInstruction.command())) {
+                            break;
+                        }
+                        body.add(subInstruction);
+                        i++;
                     }
+                    macroMap.put(macroId, body);
+                } else if ("CALL_MACRO".equals(cmd) || "CALL_PATTERN".equals(cmd)) {
+                    hasCallMacro = true;
+                    var macroId = instruction.getStringArg(0);
+                    var count = instruction.getIntArg(1);
+                    var transpose = instruction.getIntArg(2);
+                    var velOffset = instruction.getIntArg(3);
+
+                    var extraArgs = instruction.args().size() > 4
+                        ? instruction.args().subList(4, instruction.args().size())
+                        : List.<String>of();
+
+                    var body = macroMap.get(macroId);
+                    if (body == null) {
+                        var msg = messageResolver.getMessage("error.compiler.macro.notdefined",
+                            macroId);
+                        throw new RamidiException(msg, instruction);
+                    }
+
+                    for (var c = 0; c < count; c++) {
+                        for (var bodyInstruction : body) {
+                            afterMacroInstructions.add(
+                                applyMacroArgs(bodyInstruction, transpose, velOffset, extraArgs));
+                        }
+                    }
+                } else {
+                    afterMacroInstructions.add(instruction);
                 }
-            } else {
-                afterMacroInstructions.add(instruction);
+                i++;
             }
-            i++;
+
+            currentInstructions = afterMacroInstructions;
+            // 展開すべき CALL_MACRO が残っていなければループ終了
+            if (!hasCallMacro) {
+                break;
+            }
         }
-        return expandLoops(afterMacroInstructions);
+
+        return expandLoops(currentInstructions);
     }
 
     private RamidiInstruction applyMacroArgs(RamidiInstruction instruction, int transpose,
@@ -107,17 +125,38 @@ public class RecomposerCompiler {
                 tempArg = tempArg.replace("$x" + index, String.format("%02x", numValue));
                 tempArg = tempArg.replace("$X" + index, String.format("%02X", numValue));
             }
+
+            // 置換されずに残っている変数引数を検知して親切なエラーを投げる
+            if (tempArg.matches(".*\\$[xX]?[0-9]+.*")) {
+                var msg = messageResolver.getMessage("error.compiler.macro.args.missing", tempArg);
+                throw new RamidiException(msg, instruction);
+            }
+
             substitutedArgs.add(tempArg);
         }
 
         var tempInstruction = new RamidiInstruction(instruction, cmd, substitutedArgs);
 
-        // 2. NOTE コマンドの場合の移調・ベロシティ計算
-        if ("NOTE".equals(cmd) && substitutedArgs.size() >= 6) {
-            var note = tempInstruction.getIntArg(3) + transpose;
+        // 2. NOTE, CHORD, ARPEGGIO コマンドの場合の移調・ベロシティ計算
+        if (("NOTE".equals(cmd) || "CHORD".equals(cmd) || "ARPEGGIO".equals(cmd))
+            && substitutedArgs.size() >= 6) {
+
+            // 移調処理
+            if ("NOTE".equals(cmd)) {
+                var noteStr = tempInstruction.getStringArg(3);
+                var note = parseNoteValue(noteStr, tempInstruction) + transpose;
+                substitutedArgs.set(3, String.valueOf(note));
+            } else {
+                // CHORD, ARPEGGIO の場合は文字列を再構築する
+                var chordName = tempInstruction.getStringArg(3);
+                var transposedChord = transposeChordName(chordName, transpose, tempInstruction);
+                substitutedArgs.set(3, transposedChord);
+            }
+
+            // ベロシティオフセットの適用（共通）
             var vel = Math.clamp(tempInstruction.getIntArg(4) + velOffset, 1, 127);
-            substitutedArgs.set(3, String.valueOf(note));
             substitutedArgs.set(4, String.valueOf(vel));
+
             return new RamidiInstruction(instruction, cmd, substitutedArgs);
         }
 
@@ -209,7 +248,8 @@ public class RecomposerCompiler {
                         var trk = instruction.getIntArg(0);
                         var ch = instruction.getIntArg(1);
                         var st = instruction.getLongArg(2);
-                        var note = instruction.getIntArg(3) + trackKeyShift[trk];
+                        var noteStr = instruction.getStringArg(3);
+                        var note = parseNoteValue(noteStr, instruction) + trackKeyShift[trk];
                         var vel = instruction.getIntArg(4);
                         var gate = instruction.getLongArg(5);
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
@@ -262,6 +302,13 @@ public class RecomposerCompiler {
                         var startVal = instruction.getIntArg(5);
                         var endVal = instruction.getIntArg(6);
                         var step = instruction.getLongArg(7);
+
+                        if (duration <= 0 || step <= 0) {
+                            var msg = messageResolver.getMessage("error.compiler.sweep.invalid",
+                                duration, step);
+                            throw new RamidiException(msg, instruction);
+                        }
+
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var startTick = trackTicks[trk];
                         for (var t = 0L; t <= duration; t += step) {
@@ -282,6 +329,13 @@ public class RecomposerCompiler {
                         var startVal = instruction.getIntArg(4);
                         var endVal = instruction.getIntArg(5);
                         var step = instruction.getLongArg(6);
+
+                        if (duration <= 0 || step <= 0) {
+                            var msg = messageResolver.getMessage("error.compiler.sweep.invalid",
+                                duration, step);
+                            throw new RamidiException(msg, instruction);
+                        }
+
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var startTick = trackTicks[trk];
                         for (var t = 0L; t <= duration; t += step) {
@@ -300,6 +354,13 @@ public class RecomposerCompiler {
                         var startBpm = instruction.getDoubleArg(3);
                         var endBpm = instruction.getDoubleArg(4);
                         var step = instruction.getLongArg(5);
+
+                        if (duration <= 0 || step <= 0) {
+                            var msg = messageResolver.getMessage("error.compiler.sweep.invalid",
+                                duration, step);
+                            throw new RamidiException(msg, instruction);
+                        }
+
                         trackTicks[trk] = Math.max(0, trackTicks[trk] + st);
                         var startTick = trackTicks[trk];
                         for (var t = 0L; t <= duration; t += step) {
@@ -309,6 +370,34 @@ public class RecomposerCompiler {
                                 List.of(String.valueOf(trk), String.valueOf(startTick + t),
                                     String.format("%.2f", currentBpm))));
                         }
+                    }
+                    case "MARKER" -> {
+                        // MARKER, trk, label
+                        var trk = instruction.getIntArg(0);
+                        var label = instruction.getStringArg(1).trim();
+                        // 現在のトラックの絶対Tickをラベルとして記憶
+                        markers.put(label, trackTicks[trk]);
+                    }
+                    case "SYNC" -> {
+                        // SYNC, trk, label
+                        var trk = instruction.getIntArg(0);
+                        var label = instruction.getStringArg(1).trim();
+
+                        if (!markers.containsKey(label)) {
+                            var msg = messageResolver.getMessage("error.compiler.marker.notfound",
+                                label);
+                            throw new RamidiException(msg, instruction); // または適当なエラーメッセージ
+                        }
+                        // トラックの絶対時間をマーカーの位置にワープ（同期）させる
+                        trackTicks[trk] = markers.get(label);
+                    }
+                    case "WAIT" -> {
+                        // WAIT, trk, ST
+                        var trk = instruction.getIntArg(0);
+                        var st = instruction.getIntArg(1);
+
+                        // 指定トラックの時間をST分だけ進める（音は鳴らさない）
+                        trackTicks[trk] += st;
                     }
                     case "TEMPO" -> {
                         var trk = instruction.getIntArg(0);
@@ -410,7 +499,7 @@ public class RecomposerCompiler {
     }
 
     private int[] parseChordName(String name, RamidiInstruction instruction) {
-        var p = Pattern.compile("^([A-Ga-g][#b]?)([0-8])?(.*)$");
+        var p = Pattern.compile("^([A-Ga-g][\\+\\-]?)([0-8])?(.*)$");
         var m = p.matcher(name);
         if (!m.matches()) {
             var msg = messageResolver.getMessage("error.compiler.chord.invalid", name);
@@ -423,10 +512,18 @@ public class RecomposerCompiler {
         var offsets = switch (type) {
             case "", "maj" -> new int[]{0, 4, 7};
             case "min", "m" -> new int[]{0, 3, 7};
+            case "6" -> new int[]{0, 4, 7, 9};                 // ★ 追加 (メジャー6)
+            case "min6", "m6" -> new int[]{0, 3, 7, 9};        // ★ 追加 (マイナー6)
             case "maj7" -> new int[]{0, 4, 7, 11};
             case "min7", "m7" -> new int[]{0, 3, 7, 10};
             case "7" -> new int[]{0, 4, 7, 10};
+            case "add9" -> new int[]{0, 4, 7, 14};
+            case "madd9", "minadd9" -> new int[]{0, 3, 7, 14};
+            case "sus4" -> new int[]{0, 5, 7};
+            case "7sus4" -> new int[]{0, 5, 7, 10};
             case "dim" -> new int[]{0, 3, 6};
+            case "dim7" -> new int[]{0, 3, 6, 9};
+            case "aug" -> new int[]{0, 4, 8};
             default -> {
                 var msg = messageResolver.getMessage("error.compiler.chord.type.unsupported", type);
                 throw new RamidiException(msg, instruction);
@@ -437,23 +534,88 @@ public class RecomposerCompiler {
 
     private int getNoteOffset(String note, RamidiInstruction instruction) {
         return switch (note) {
-            case "C" -> 0;
-            case "C#", "DB" -> 1;
+            case "C", "B+" -> 0;
+            case "C+", "D-" -> 1;
             case "D" -> 2;
-            case "D#", "EB" -> 3;
-            case "E" -> 4;
-            case "F" -> 5;
-            case "F#", "GB" -> 6;
+            case "D+", "E-" -> 3;
+            case "E", "F-" -> 4;
+            case "F", "E+" -> 5;
+            case "F+", "G-" -> 6;
             case "G" -> 7;
-            case "G#", "AB" -> 8;
+            case "G+", "A-" -> 8;
             case "A" -> 9;
-            case "A#", "BB" -> 10;
-            case "B" -> 11;
+            case "A+", "B-" -> 10;
+            case "B", "C-" -> 11;
             default -> {
                 var msg = messageResolver.getMessage("error.compiler.chord.note.unsupported", note);
                 throw new RamidiException(msg, instruction);
             }
         };
+    }
+
+    private int parseNoteValue(String noteStr, RamidiInstruction instruction) {
+        // まず数値としてパースを試みる
+        try {
+            var trimmed = noteStr.trim();
+            if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
+                return Integer.parseInt(trimmed.substring(2), 16);
+            }
+            return Integer.parseInt(trimmed);
+        } catch (NumberFormatException e) {
+            // 数値じゃなければ音階名 (例: C4, F+2) としてパース
+            var p = Pattern.compile("^([A-Ga-g][\\+\\-]?)([0-8])?$");
+            var m = p.matcher(noteStr.trim());
+            if (!m.matches()) {
+                var msg = messageResolver.getMessage("error.compiler.note.invalid", noteStr);
+                throw new RamidiException(msg, instruction);
+            }
+            var noteName = m.group(1).toUpperCase();
+            var octave = m.group(2) != null ? Integer.parseInt(m.group(2)) : 4; // 省略時は4
+            return (octave + 1) * 12 + getNoteOffset(noteName, instruction);
+        }
+    }
+
+    private String transposeChordName(String chordName, int transpose,
+        RamidiInstruction instruction) {
+        if (transpose == 0) {
+            return chordName;
+        }
+
+        var p = Pattern.compile("^([A-Ga-g][\\+\\-]?)([0-8])?(.*)$");
+        var m = p.matcher(chordName);
+        if (!m.matches()) {
+            return chordName;
+        }
+
+        var noteName = m.group(1).toUpperCase();
+        var octaveStr = m.group(2);
+        var octave = octaveStr != null ? Integer.parseInt(octaveStr) : 4;
+        var type = m.group(3);
+
+        var root = (octave + 1) * 12 + getNoteOffset(noteName, instruction);
+        root += transpose;
+
+        // 負数移調に対応した切り捨て除算と余り計算
+        var newOctave = Math.floorDiv(root, 12) - 1;
+        var noteIndex = Math.floorMod(root, 12);
+
+        var newNoteName = switch (noteIndex) {
+            case 0 -> "C";
+            case 1 -> "C+";
+            case 2 -> "D";
+            case 3 -> "D+";
+            case 4 -> "E";
+            case 5 -> "F";
+            case 6 -> "F+";
+            case 7 -> "G";
+            case 8 -> "G+";
+            case 9 -> "A";
+            case 10 -> "A+";
+            case 11 -> "B";
+            default -> "C";
+        };
+
+        return newNoteName + newOctave + type;
     }
 
     @RequiredArgsConstructor

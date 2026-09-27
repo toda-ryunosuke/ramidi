@@ -1,0 +1,705 @@
+# ==========================================
+# Vaporwave Pop Project (Refactored & Dopa-Arranged)
+# BPM: 128 / Key: C Major (A Minor)
+# ==========================================
+
+TITLE, "Midnight Highway (Vaporwave Mix)"
+COPYRIGHT, "2026 Gemini"
+
+# --- グローバル設定 ---
+USE_SOUNDFONT, GeneralUser
+MASTERING_TYPE, POP    # 音割れ防止のためマイルドなコンプのPOPに変更
+
+# --- トラック名設定 ---
+TRACK_NAME, 1, "Drums (TR-808)"
+TRACK_NAME, 2, "Synth Bass"
+TRACK_NAME, 3, "Electric Piano"
+TRACK_NAME, 4, "Warm Pad"
+TRACK_NAME, 5, "FM Keys Melody"    # 変更: 鍵盤メロディトラックに
+TRACK_NAME, 6, "Rhythm Guitar"
+TRACK_NAME, 7, "Synth Voice / SFX"
+TRACK_NAME, 8, "Sparkle Arp"
+TRACK_NAME, 16, "Master Timeline"
+
+# ==========================================
+# 初期化イベント (ST=0 で同時に設定)
+# ==========================================
+
+PROGRAM, 1, 9, 0, 24
+PROGRAM, 2, 0, 0, 38
+PROGRAM, 3, 1, 0, 4
+PROGRAM, 4, 2, 0, 89
+PROGRAM, 5, 3, 0, 5    # FM E.Piano (ベロシティでアタックが変わる)
+PROGRAM, 6, 4, 0, 27
+PROGRAM, 7, 5, 0, 54
+PROGRAM, 8, 6, 0, 88   # Fantasia (キラキラ)
+
+CC, 1, 9, 0, 10, 64
+CC, 2, 0, 0, 10, 64
+CC, 3, 1, 0, 10, 40
+CC, 4, 2, 0, 10, 88
+CC, 5, 3, 0, 10, 64
+CC, 6, 4, 0, 10, 30
+CC, 7, 5, 0, 10, 98
+CC, 8, 6, 0, 10, 64
+
+# --- 音割れ対策: 全体の音量を下げてヘッドルームを確保 ---
+CC, 1, 9, 0, 7, 85     # Drums
+CC, 2, 0, 0, 7, 95     # Bass
+CC, 3, 1, 0, 7, 75     # E.Piano
+CC, 4, 2, 0, 7, 70     # Pad
+CC, 5, 3, 0, 7, 100    # Keys Melody (少し上げる)
+CC, 6, 4, 0, 7, 65     # Guitar
+CC, 7, 5, 0, 7, 70     # Voice
+CC, 8, 6, 0, 7, 75     # Arp
+
+# --- 抜け対策: Trk 5 だけエクスプレッション(CC 11)でさらにブースト ---
+CC, 5, 3, 0, 11, 127
+
+# フィルターカットオフ(CC74) の初期化
+CC, 4, 2, 0, 74, 127
+CC, 3, 1, 0, 74, 127
+CC, 5, 3, 0, 74, 127
+
+TEMPO, 1, 0, 128
+
+
+# 🔒 =======================================
+# 🔒 システム・マクロ定義
+# 🔒 =======================================
+
+# 全トラックを指定したマーカーラベルに一斉同期させるマクロ
+DEF_MACRO, SYNC_ALL
+  SYNC, 1, $1
+  SYNC, 2, $1
+  SYNC, 3, $1
+  SYNC, 4, $1
+  SYNC, 5, $1
+  SYNC, 6, $1
+  SYNC, 7, $1
+  SYNC, 8, $1
+END_MACRO
+
+# ==========================================
+# マスタータイムライン (Track 16)
+# ==========================================
+SET_TICK, 16, 0
+
+MARKER, 16, M_Intro
+WAIT, 16, 15360     # 8小節
+
+MARKER, 16, M_A1
+WAIT, 16, 30720     # 16小節
+
+MARKER, 16, M_B1
+WAIT, 16, 15360     # 8小節
+
+MARKER, 16, M_Chorus1
+WAIT, 16, 30720     # 16小節
+
+MARKER, 16, M_Inter1
+WAIT, 16, 15360     # 8小節
+
+MARKER, 16, M_A2
+WAIT, 16, 15360     # 8小節
+
+MARKER, 16, M_B2
+WAIT, 16, 15360     # 8小節
+
+MARKER, 16, M_Chorus2
+WAIT, 16, 30720     # 16小節
+
+MARKER, 16, M_Bridge
+WAIT, 16, 15360     # 8小節
+
+MARKER, 16, M_Solo
+WAIT, 16, 15360     # 8小節
+
+MARKER, 16, M_Chorus3
+WAIT, 16, 30720     # 16小節
+
+MARKER, 16, M_Outro
+WAIT, 16, 15360     # 8小節
+
+
+# ==========================================
+# リズムパターン・マクロ定義
+# ==========================================
+
+# --- ドラム (Trk 1) ---
+DEF_MACRO, DRUM_BASIC
+  NOTE, 1, 9, 0,   36, 110, 240
+  NOTE, 1, 9, 240, 42, 80,  120
+  NOTE, 1, 9, 240, 36, 110, 240
+  NOTE, 1, 9, 0,   38, 100, 240
+  NOTE, 1, 9, 0,   39, 100, 240
+  NOTE, 1, 9, 240, 42, 80,  120
+  NOTE, 1, 9, 240, 36, 110, 240
+  NOTE, 1, 9, 240, 42, 80,  120
+  NOTE, 1, 9, 240, 36, 110, 240
+  NOTE, 1, 9, 0,   38, 100, 240
+  NOTE, 1, 9, 0,   39, 100, 240
+  NOTE, 1, 9, 240, 42, 80,  120
+  WAIT, 1, 240
+END_MACRO
+
+# ドラムフィルイン (スネアロール)
+DEF_MACRO, DRUM_FILL_1
+  NOTE, 1, 9, 0,   36, 110, 240
+  NOTE, 1, 9, 240, 42, 80,  120
+  NOTE, 1, 9, 240, 36, 110, 240
+  NOTE, 1, 9, 0,   38, 100, 240
+  NOTE, 1, 9, 240, 42, 80,  120
+  # 3拍目からフィル
+  NOTE, 1, 9, 240, 38, 100, 120
+  NOTE, 1, 9, 120, 38, 105, 120
+  NOTE, 1, 9, 120, 45, 110, 120  # Mid Tom
+  NOTE, 1, 9, 120, 45, 110, 120
+  NOTE, 1, 9, 120, 41, 115, 120  # Low Tom
+  NOTE, 1, 9, 120, 41, 115, 120
+  NOTE, 1, 9, 120, 38, 127, 120  # Flam
+  WAIT, 1, 240
+END_MACRO
+
+# ドラムブレイク (2拍目以降休符)
+DEF_MACRO, DRUM_DROP
+  NOTE, 1, 9, 0,   49, 120, 480  # クラッシュ
+  NOTE, 1, 9, 0,   36, 110, 240
+  NOTE, 1, 9, 240, 42, 80,  120
+  NOTE, 1, 9, 240, 36, 110, 240
+  NOTE, 1, 9, 0,   38, 100, 240
+  WAIT, 1, 1440
+END_MACRO
+
+DEF_MACRO, CRASH
+  NOTE, 1, 9, 0, 49, 120, 480
+END_MACRO
+
+# --- シンセベース (Trk 2) ---
+DEF_MACRO, BASS_BASIC
+  NOTE, 2, 0, 0,   $1, 110, 240
+      ,  ,  , 240, $1, 90,  240
+      ,  ,  , 480, $1, 100, 240
+      ,  ,  , 240, $1, 110, 240
+      ,  ,  , 480, $1, 90,  240
+      ,  ,  , 240, $1, 100, 240
+  WAIT, 2, 240
+END_MACRO
+
+DEF_MACRO, BASS_SPLIT
+  NOTE, 2, 0, 0,   $1, 110, 240
+      ,  ,  , 240, $1, 90,  240
+      ,  ,  , 720, $2, 100, 240
+      ,  ,  , 240, $2, 110, 240
+  WAIT, 2, 720
+END_MACRO
+
+# --- E.Piano / Guitar バッキング (1小節) ---
+DEF_MACRO, EP_COMP
+  CHORD, 3, 1, 0,    $1, 75, 480
+       ,  ,  , 720,  $1, 65, 240
+       ,  ,  , 240,  $1, 70, 480
+  WAIT, 3, 960
+END_MACRO
+
+DEF_MACRO, EP_COMP_SPLIT
+  CHORD, 3, 1, 0,    $1, 75, 480
+       ,  ,  , 720,  $1, 65, 240
+  CHORD, 3, 1, 240,  $2, 75, 480
+  WAIT, 3, 960
+END_MACRO
+
+DEF_MACRO, GUITAR_COMP
+  CHORD, 6, 4, 240,  $1, 90, 120
+       ,  ,  , 240,  $1, 70, 120
+       ,  ,  , 240,  $1, 85, 120
+       ,  ,  , 480,  $1, 95, 120
+       ,  ,  , 240,  $1, 70, 120
+       ,  ,  , 240,  $1, 80, 120
+  WAIT, 6, 240
+END_MACRO
+
+DEF_MACRO, GUITAR_COMP_SPLIT
+  CHORD, 6, 4, 240,  $1, 90, 120
+       ,  ,  , 240,  $1, 70, 120
+       ,  ,  , 240,  $1, 85, 120
+       ,  ,  , 480,  $2, 95, 120
+       ,  ,  , 240,  $2, 70, 120
+       ,  ,  , 240,  $2, 80, 120
+  WAIT, 6, 240
+END_MACRO
+
+# --- 鍵盤メロディ (Trk 5) ---
+# ★修正: 濁り防止のため全ノートのGateをSTより短く統一 (スタッカート気味に)
+# ★修正: アタック感を出すためVelを全ノート 115〜127 で強打
+DEF_MACRO, KEYS_MELODY
+  # 1小節目 (Fmaj7 -> G7)
+  # [E5和音 (Am風)] - 1拍目裏
+  NOTE, 5, 3, 240, 69, 115, 160  # A4
+      ,  ,  , 0,   72, 115, 160  # C5
+      ,  ,  , 0,   76, 127, 160  # E5 (Top)
+  # [E5和音] - 2拍目裏
+  NOTE, 5, 3, 240, 69, 115, 160
+      ,  ,  , 0,   72, 115, 160
+      ,  ,  , 0,   76, 127, 160
+  # [F5和音 (Fmaj風)] - 3拍目裏
+  NOTE, 5, 3, 240, 69, 115, 160  # A4
+      ,  ,  , 0,   72, 115, 160  # C5
+      ,  ,  , 0,   77, 127, 160  # F5 (Top)
+  # [G5和音 (Gmaj風)] - 4拍目 (少し長め)
+  NOTE, 5, 3, 480, 71, 115, 360  # B4
+      ,  ,  , 0,   74, 115, 360  # D5
+      ,  ,  , 0,   79, 127, 360  # G5 (Top)
+  WAIT, 5, 720
+
+  # 2小節目 (Em7 -> Am7)
+  # [G5和音]
+  NOTE, 5, 3, 240, 71, 115, 160
+      ,  ,  , 0,   74, 115, 160
+      ,  ,  , 0,   79, 127, 160
+  # [G5和音]
+  NOTE, 5, 3, 240, 71, 115, 160
+      ,  ,  , 0,   74, 115, 160
+      ,  ,  , 0,   79, 127, 160
+  # [F5和音]
+  NOTE, 5, 3, 240, 69, 115, 160
+      ,  ,  , 0,   72, 115, 160
+      ,  ,  , 0,   77, 127, 160
+  # [E5和音] (長め)
+  NOTE, 5, 3, 480, 69, 115, 360
+      ,  ,  , 0,   72, 115, 360
+      ,  ,  , 0,   76, 127, 360
+  # [C5和音 (Cmaj風)]
+  NOTE, 5, 3, 240, 64, 115, 160  # E4
+      ,  ,  , 0,   67, 115, 160  # G4
+      ,  ,  , 0,   72, 127, 160  # C5 (Top)
+  WAIT, 5, 480
+END_MACRO
+
+# --- FM Keys カッティングソロ (Trk 5) ---
+# ★修正: ソロの和音も同じくアタック強めで歯切れよく
+DEF_MACRO, KEYS_SOLO_COMP
+  CHORD, 5, 3, 240, $1, 127, 120
+  CHORD, 5, 3, 240, $1, 115, 120
+  CHORD, 5, 3, 240, $1, 120, 120
+  CHORD, 5, 3, 240, $1, 115, 120
+  CHORD, 5, 3, 480, $1, 127, 180
+  WAIT, 5, 480
+END_MACRO
+
+# --- スパークル・アルペジオ (Trk 8) ---
+DEF_MACRO, ARP_SPARKLE
+  ARPEGGIO, 8, 6, 0, $1, 100, 100, 120
+  WAIT, 8, 1920
+END_MACRO
+
+# --- SFX: ライザーエフェクト (Trk 7) ---
+DEF_MACRO, RISER
+  BEND, 7, 5, 0, 0
+  NOTE, 7, 5, 0, 72, 100, 3840
+  SWEEP_BEND, 7, 5, 0, 3840, 0, 8191, 48
+  SWEEP_CC, 7, 5, 0, 3840, 7, 0, 90, 48
+  WAIT, 7, 3840
+END_MACRO
+
+
+# ==========================================
+# コード進行マクロ (4小節単位)
+# ==========================================
+
+# [進行A] Fmaj7 - E7 - Am7 - Gm7 C7
+DEF_MACRO, PROG_A_BASS
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, F2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, E2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, A2
+  CALL_MACRO, BASS_SPLIT, 1, 0, 0, G2, C2
+END_MACRO
+
+DEF_MACRO, PROG_A_EP
+  CALL_MACRO, EP_COMP, 1, 0, 0, F4maj7
+  CALL_MACRO, EP_COMP, 1, 0, 0, E47
+  CALL_MACRO, EP_COMP, 1, 0, 0, A4min7
+  CALL_MACRO, EP_COMP_SPLIT, 1, 0, 0, G4min7, C47
+END_MACRO
+
+DEF_MACRO, PROG_A_GUITAR
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, F4maj7
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, E47
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, A4min7
+  CALL_MACRO, GUITAR_COMP_SPLIT, 1, 0, 0, G4min7, C47
+END_MACRO
+
+DEF_MACRO, PROG_A_PAD
+  CHORD, 4, 2, 0, F4maj7, 80, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, E47, 80, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, A4min7, 80, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, G4min7, 80, 960
+  WAIT, 4, 960
+  CHORD, 4, 2, 0, C47, 80, 960
+  WAIT, 4, 960
+END_MACRO
+
+# [進行B] Dm7 - Em7 - Fmaj7 - G7
+DEF_MACRO, PROG_B_BASS
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, D2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, E2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, F2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, G2
+END_MACRO
+
+DEF_MACRO, PROG_B_EP
+  CALL_MACRO, EP_COMP, 1, 0, 0, D4min7
+  CALL_MACRO, EP_COMP, 1, 0, 0, E4min7
+  CALL_MACRO, EP_COMP, 1, 0, 0, F4maj7
+  CALL_MACRO, EP_COMP, 1, 0, 0, G47
+END_MACRO
+
+DEF_MACRO, PROG_B_GUITAR
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, D4min7
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, E4min7
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, F4maj7
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, G47
+END_MACRO
+
+DEF_MACRO, PROG_B_PAD
+  CHORD, 4, 2, 0, D4min7, 80, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, E4min7, 80, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, F4maj7, 80, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, G47, 80, 1920
+  WAIT, 4, 1920
+END_MACRO
+
+# [進行Chorus] Fmaj7 - G7 - Em7 - Am7
+DEF_MACRO, PROG_C_BASS
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, F2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, G2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, E2
+  CALL_MACRO, BASS_BASIC, 1, 0, 0, A2
+END_MACRO
+
+DEF_MACRO, PROG_C_EP
+  CALL_MACRO, EP_COMP, 1, 0, 0, F4maj7
+  CALL_MACRO, EP_COMP, 1, 0, 0, G47
+  CALL_MACRO, EP_COMP, 1, 0, 0, E4min7
+  CALL_MACRO, EP_COMP, 1, 0, 0, A4min7
+END_MACRO
+
+DEF_MACRO, PROG_C_GUITAR
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, F4maj7
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, G47
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, E4min7
+  CALL_MACRO, GUITAR_COMP, 1, 0, 0, A4min7
+END_MACRO
+
+DEF_MACRO, PROG_C_PAD
+  CHORD, 4, 2, 0, F4maj7, 85, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, G47, 85, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, E4min7, 85, 1920
+  WAIT, 4, 1920
+  CHORD, 4, 2, 0, A4min7, 85, 1920
+  WAIT, 4, 1920
+END_MACRO
+
+# [アルペジオ進行Chorus] Fmaj7 - G7 - Em7 - Am7
+DEF_MACRO, PROG_C_ARP
+  CALL_MACRO, ARP_SPARKLE, 1, 0, 0, F5maj7
+  CALL_MACRO, ARP_SPARKLE, 1, 0, 0, G57
+  CALL_MACRO, ARP_SPARKLE, 1, 0, 0, E5min7
+  CALL_MACRO, ARP_SPARKLE, 1, 0, 0, A5min7
+END_MACRO
+
+
+# ==========================================
+# 楽曲データセクション
+# ==========================================
+
+# ------------------------------------------
+# [1] Intro (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Intro
+
+# 頭でクラッシュ
+CALL_MACRO, CRASH, 1, 0, 0
+WAIT, 1, 15360
+
+# Padはフィルター(CC74)を徐々に開いていく演出
+SWEEP_CC, 4, 2, 0, 15360, 74, 40, 127, 480
+CALL_MACRO, PROG_A_PAD, 2, 0, 0
+
+
+# ------------------------------------------
+# [2] Aメロ 1 (16小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_A1
+
+# Drums (4小節ごとにフィル)
+LOOP_START, 4
+  CALL_MACRO, DRUM_BASIC, 3, 0, 0
+  LOOP_NOT_LAST
+    CALL_MACRO, DRUM_FILL_1, 1, 0, 0
+  LOOP_LAST
+    CALL_MACRO, DRUM_DROP, 1, 0, 0
+LOOP_END
+
+CALL_MACRO, PROG_A_BASS,   4, 0, 0
+CALL_MACRO, PROG_A_GUITAR, 4, 0, 0
+CALL_MACRO, PROG_A_EP,     4, 0, 0
+CALL_MACRO, PROG_A_PAD,    4, 0, 0
+
+
+# ------------------------------------------
+# [3] Bメロ 1 (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_B1
+CALL_MACRO, CRASH, 1, 0, 0
+
+# Drums
+CALL_MACRO, DRUM_BASIC, 7, 0, 0
+CALL_MACRO, DRUM_DROP,  1, 0, 0
+
+CALL_MACRO, PROG_B_BASS,   2, 0, 0
+CALL_MACRO, PROG_B_GUITAR, 2, 0, 0
+CALL_MACRO, PROG_B_EP,     2, 0, 0
+CALL_MACRO, PROG_B_PAD,    2, 0, 0
+
+WAIT, 7, 11520
+CALL_MACRO, RISER, 1, 0, 0
+
+
+# ------------------------------------------
+# [4] Chorus 1 (16小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Chorus1
+
+CALL_MACRO, CRASH, 1, 0, 0
+
+LOOP_START, 4
+  CALL_MACRO, DRUM_BASIC, 3, 0, 0
+  CALL_MACRO, DRUM_FILL_1, 1, 0, 0
+LOOP_END
+
+CALL_MACRO, PROG_C_BASS,   4, 0, 0
+CALL_MACRO, PROG_C_GUITAR, 4, 0, 0
+CALL_MACRO, PROG_C_EP,     4, 0, 0
+CALL_MACRO, PROG_C_PAD,    4, 0, 0
+CALL_MACRO, KEYS_MELODY,   8, 0, 0
+CALL_MACRO, PROG_C_ARP,    4, 0, 0
+
+
+# ------------------------------------------
+# [5] Interlude 1 (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Inter1
+CALL_MACRO, CRASH, 1, 0, 0
+
+CALL_MACRO, DRUM_BASIC, 8, 0, 0
+
+CALL_MACRO, PROG_A_BASS,   2, 0, 0
+CALL_MACRO, PROG_A_GUITAR, 2, 0, 0
+CALL_MACRO, PROG_A_EP,     2, 0, 0
+CALL_MACRO, PROG_A_PAD,    2, 0, 0
+
+
+# ------------------------------------------
+# [6] Aメロ 2 (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_A2
+
+LOOP_START, 2
+  CALL_MACRO, DRUM_BASIC, 3, 0, 0
+  CALL_MACRO, DRUM_FILL_1, 1, 0, 0
+LOOP_END
+
+CALL_MACRO, PROG_A_BASS,   2, 0, 0
+CALL_MACRO, PROG_A_GUITAR, 2, 0, 0
+CALL_MACRO, PROG_A_EP,     2, 0, 0
+CALL_MACRO, PROG_A_PAD,    2, 0, 0
+
+
+# ------------------------------------------
+# [7] Bメロ 2 (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_B2
+CALL_MACRO, CRASH, 1, 0, 0
+
+CALL_MACRO, DRUM_BASIC, 7, 0, 0
+CALL_MACRO, DRUM_DROP,  1, 0, 0
+
+CALL_MACRO, PROG_B_BASS,   2, 0, 0
+CALL_MACRO, PROG_B_GUITAR, 2, 0, 0
+CALL_MACRO, PROG_B_EP,     2, 0, 0
+CALL_MACRO, PROG_B_PAD,    2, 0, 0
+
+WAIT, 7, 11520
+CALL_MACRO, RISER, 1, 0, 0
+
+
+# ------------------------------------------
+# [8] Chorus 2 (16小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Chorus2
+CALL_MACRO, CRASH, 1, 0, 0
+
+LOOP_START, 4
+  CALL_MACRO, DRUM_BASIC, 3, 0, 0
+  CALL_MACRO, DRUM_FILL_1, 1, 0, 0
+LOOP_END
+
+CALL_MACRO, PROG_C_BASS,   4, 0, 0
+CALL_MACRO, PROG_C_GUITAR, 4, 0, 0
+CALL_MACRO, PROG_C_EP,     4, 0, 0
+CALL_MACRO, PROG_C_PAD,    4, 0, 0
+CALL_MACRO, KEYS_MELODY,   8, 0, 0
+CALL_MACRO, PROG_C_ARP,    4, 0, 0
+
+
+# ------------------------------------------
+# [9] Bridge / Cメロ (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Bridge
+CALL_MACRO, CRASH, 1, 0, 0
+
+CALL_MACRO, DRUM_BASIC, 8, 0, 0
+
+CALL_MACRO, BASS_BASIC, 1, 0, 0, A-2
+CALL_MACRO, BASS_BASIC, 1, 0, 0, B-2
+CALL_MACRO, BASS_BASIC, 1, 0, 0, C3
+CALL_MACRO, BASS_BASIC, 1, 0, 0, C3
+CALL_MACRO, BASS_BASIC, 1, 0, 0, A-2
+CALL_MACRO, BASS_BASIC, 1, 0, 0, B-2
+CALL_MACRO, BASS_BASIC, 1, 0, 0, E-2
+CALL_MACRO, BASS_BASIC, 1, 0, 0, G2
+
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, A-4maj7
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, B-47
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, C4maj7
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, C4maj7
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, A-4maj7
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, B-47
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, E-4maj7
+CALL_MACRO, GUITAR_COMP, 1, 0, 0, G47
+
+CHORD, 7, 5, 0,    A-5maj7, 75, 1920
+WAIT, 7, 1920
+CHORD, 7, 5, 0,    B-57,    75, 1920
+WAIT, 7, 1920
+CHORD, 7, 5, 0,    C5maj7,  75, 1920
+WAIT, 7, 1920
+CHORD, 7, 5, 0,    C5maj7,  75, 1920
+WAIT, 7, 1920
+CHORD, 7, 5, 0,    A-5maj7, 75, 1920
+WAIT, 7, 1920
+CHORD, 7, 5, 0,    B-57,    75, 1920
+WAIT, 7, 1920
+CHORD, 7, 5, 0,    E-5maj7, 75, 1920
+WAIT, 7, 1920
+CHORD, 7, 5, 0,    G57,     80, 1920
+WAIT, 7, 1920
+
+CHORD, 4, 2, 0,    A-4maj7, 70, 1920
+WAIT, 4, 1920
+CHORD, 4, 2, 0,    B-47,    70, 1920
+WAIT, 4, 1920
+CHORD, 4, 2, 0,    C4maj7,  70, 1920
+WAIT, 4, 1920
+CHORD, 4, 2, 0,    C4maj7,  70, 1920
+WAIT, 4, 1920
+CHORD, 4, 2, 0,    A-4maj7, 70, 1920
+WAIT, 4, 1920
+CHORD, 4, 2, 0,    B-47,    70, 1920
+WAIT, 4, 1920
+CHORD, 4, 2, 0,    E-4maj7, 70, 1920
+WAIT, 4, 1920
+CHORD, 4, 2, 0,    G47,     75, 1920
+WAIT, 4, 1920
+
+CALL_MACRO, EP_COMP, 1, 0, 0, A-4maj7
+CALL_MACRO, EP_COMP, 1, 0, 0, B-47
+CALL_MACRO, EP_COMP, 1, 0, 0, C4maj7
+CALL_MACRO, EP_COMP, 1, 0, 0, C4maj7
+CALL_MACRO, EP_COMP, 1, 0, 0, A-4maj7
+CALL_MACRO, EP_COMP, 1, 0, 0, B-47
+CALL_MACRO, EP_COMP, 1, 0, 0, E-4maj7
+CALL_MACRO, EP_COMP, 1, 0, 0, G47
+
+
+# ------------------------------------------
+# [10] Interlude 2 / ソロ (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Solo
+CALL_MACRO, CRASH, 1, 0, 0
+
+CALL_MACRO, DRUM_BASIC, 8, 0, 0
+CALL_MACRO, PROG_C_BASS,   2, 0, 0
+CALL_MACRO, PROG_C_GUITAR, 2, 0, 0
+CALL_MACRO, PROG_C_EP,     2, 0, 0
+CALL_MACRO, PROG_C_PAD,    2, 0, 0
+
+# FM Keys Solo (ハウスピアノ風カッティング)
+LOOP_START, 2
+  CALL_MACRO, KEYS_SOLO_COMP, 1, 0, 0, F5maj7
+  CALL_MACRO, KEYS_SOLO_COMP, 1, 0, 0, G57
+  CALL_MACRO, KEYS_SOLO_COMP, 1, 0, 0, E5min7
+  CALL_MACRO, KEYS_SOLO_COMP, 1, 0, 0, A5min7
+LOOP_END
+
+
+# ------------------------------------------
+# [11] Chorus 3 / 落ちサビ〜大サビ (16小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Chorus3
+
+# 前半8小節(落ちサビ)
+WAIT, 1, 15360
+WAIT, 2, 15360
+WAIT, 6, 15360
+WAIT, 5, 15360
+WAIT, 8, 15360
+
+SWEEP_CC, 4, 2, 0, 15360, 74, 127, 40, 480
+CALL_MACRO, PROG_C_PAD,    2, 0, 0
+CALL_MACRO, PROG_C_EP,     2, 0, 0
+
+# 後半8小節(大サビ)
+CALL_MACRO, CRASH, 1, 0, 0
+
+LOOP_START, 2
+  CALL_MACRO, DRUM_BASIC, 3, 0, 0
+  CALL_MACRO, DRUM_FILL_1, 1, 0, 0
+LOOP_END
+
+CALL_MACRO, PROG_C_BASS,   2, 0, 0
+CALL_MACRO, PROG_C_GUITAR, 2, 0, 0
+CALL_MACRO, PROG_C_EP,     2, 0, 0
+CC, 4, 2, 0, 74, 127
+CALL_MACRO, PROG_C_PAD,    2, 0, 0
+CALL_MACRO, KEYS_MELODY,   4, 0, 0
+CALL_MACRO, PROG_C_ARP,    2, 0, 0
+
+
+# ------------------------------------------
+# [12] Outro (8小節)
+# ------------------------------------------
+CALL_MACRO, SYNC_ALL, 1, 0, 0, M_Outro
+CALL_MACRO, CRASH, 1, 0, 0
+
+# Tape Stop Effect
+SWEEP_TEMPO, 1, 0, 15360, 128, 40, 480
+
+CALL_MACRO, DRUM_BASIC, 8, 0, 0
+CALL_MACRO, PROG_C_BASS,   2, 0, 0
+CALL_MACRO, PROG_C_GUITAR, 2, 0, 0
+
+SWEEP_CC, 4, 2, 0, 15360, 7, 70, 0, 480
+CALL_MACRO, PROG_C_PAD,    2, 0, 0
+
+SWEEP_CC, 3, 1, 0, 15360, 7, 75, 0, 480
+CALL_MACRO, PROG_C_EP,     2, 0, 0

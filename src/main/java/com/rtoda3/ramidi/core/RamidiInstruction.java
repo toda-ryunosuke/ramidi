@@ -22,8 +22,10 @@ public class RamidiInstruction {
         this.lineNumber = lineNumber;
         this.rawText = rawText;
 
-        var cleanedText = rawText.split("#")[0].trim();
-        var parts = cleanedText.split(",", -1); // 末尾の空文字列も保持
+        // 1. コメント(#)の除去：ダブルクォーテーション内の # は無視する
+        var cleanedText = rawText.split("#(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")[0].trim();
+        // 2. 引数(,)の分割：ダブルクォーテーション内の , は無視する
+        var parts = cleanedText.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1); // 末尾の空文字列も保持
 
         this.command = parts[0].trim().replaceAll("^\"|\"$", "").toUpperCase();
 
